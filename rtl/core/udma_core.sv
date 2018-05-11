@@ -175,6 +175,12 @@ module udma_core
     logic        [31:0] s_periph_data_from_cgunit;
     logic        [15:0] s_cg_value;
 
+    logic               s_clk_core;
+    logic               s_filter_stream_sof;
+    logic               s_filter_stream_eof;
+    logic               s_clk_filter;
+    logic               s_clk_core_en;
+
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
     assign periph_rwn_o     = s_periph_rwn;

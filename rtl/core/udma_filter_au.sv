@@ -278,11 +278,11 @@ module udma_filter_au
       begin
         if (cmd_start_i)
         begin
-          r_sample_dly = 1'b0;
-          r_sample_out = 1'b0;
-          r_accoutvalid = 1'b0;
-          r_sof         = 1'b0;
-          r_eof         = 1'b0;
+          r_sample_dly  <= 1'b0;
+          r_sample_out  <= 1'b0;
+          r_accoutvalid <= 1'b0;
+          r_sof         <= 1'b0;
+          r_eof         <= 1'b0;
         end
         else if(output_ready_i)
         begin

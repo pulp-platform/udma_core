@@ -138,6 +138,7 @@ module udma_filter
    logic [DATA_WIDTH-1:0] s_bincu_out_data;
    logic                  s_bincu_out_valid;
    logic                  s_bincu_out_ready;
+   logic                  s_bincu_outenable;
 
    logic [DATA_WIDTH-1:0] s_udma_out_data;
    logic                  s_udma_out_valid;
@@ -156,6 +157,7 @@ module udma_filter
    logic s_start_cha;
    logic s_start_chb;
    logic s_start_out;
+   logic s_start_bcu;
 
   logic [2:0] s_status;
   logic [2:0] r_status;
@@ -167,6 +169,8 @@ module udma_filter
   logic       r_done;
 
   logic       s_event;
+
+  logic       s_filter_ready;
   
    assign s_start_out = cfg_filter_start_i & s_sel_out_valid;
    assign s_start_cha = cfg_filter_start_i & s_sel_opa_valid;

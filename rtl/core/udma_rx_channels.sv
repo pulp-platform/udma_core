@@ -129,6 +129,9 @@ module udma_rx_channels
     logic                  s_event;
     logic                  s_sot;
 
+    logic                  s_push_l2;
+    logic                  s_push_filter;
+
     assign ch_events_o = s_ch_events;
     assign ch_curr_addr_o = s_curr_addr;
     assign ch_en_o = s_ch_en;

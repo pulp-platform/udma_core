@@ -56,6 +56,8 @@ module io_tx_fifo_mark
     logic                           s_stop_req;  
     logic                           s_mark_sof_evt;
     logic                           s_mark_eof_evt;
+    logic                           s_mark_sof_dec;
+    logic                           s_mark_eof_dec;
     logic                           s_mark; 
     logic                           r_issof;
 

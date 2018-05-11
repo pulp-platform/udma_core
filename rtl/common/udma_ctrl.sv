@@ -220,9 +220,9 @@ module udma_ctrl
         else
         begin
             if (cfg_valid_i && !cfg_rwn_i && (s_wr_addr == `REG_FILT_CMD) && cfg_data_i[0])
-                r_filter_start = 1'b1;
+                r_filter_start <= 1'b1;
             else
-                r_filter_start = 1'b0;
+                r_filter_start <= 1'b0;
 
             if (cfg_valid_i & ~cfg_rwn_i)
             begin

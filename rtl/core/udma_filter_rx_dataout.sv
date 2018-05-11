@@ -69,6 +69,8 @@ module udma_filter_rx_dataout
 
     logic [DATA_WIDTH-1:0] s_data_rx;
     logic                  s_data_rx_valid;
+    logic                  s_data_rx_ready;
+    
     logic                  s_done;
     logic                  s_sample_loc_startaddr;
     logic                  s_sample_loc_pointer;
