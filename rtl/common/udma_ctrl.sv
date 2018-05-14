@@ -278,7 +278,7 @@ module udma_ctrl
                 end
                 `REG_TX_CH1_LEN2:
                 begin
-                    r_filter_rx_len2[1] <= cfg_data_i[TRANS_SIZE-1:0];
+                    r_filter_tx_len2[1] <= cfg_data_i[TRANS_SIZE-1:0];
                 end
                 `REG_RX_CH_ADD:
                 begin
@@ -368,7 +368,7 @@ module udma_ctrl
         `REG_TX_CH1_LEN1:
             cfg_data_o[TRANS_SIZE-1:0] = r_filter_tx_len1[1];
         `REG_TX_CH1_LEN2:
-            cfg_data_o[TRANS_SIZE-1:0] = r_filter_rx_len2[1];
+            cfg_data_o[TRANS_SIZE-1:0] = r_filter_tx_len2[1];
         `REG_RX_CH_ADD:
             cfg_data_o[L2_AWIDTH_NOAL-1:0] = r_filter_rx_start_addr[1];
         `REG_RX_CH_CFG:
