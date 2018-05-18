@@ -319,7 +319,7 @@ module udma_core
 
         .cfg_bincu_threshold_i     ( s_bincu_cfg_threshold ),
         .cfg_bincu_counter_i       ( s_bincu_cfg_counter   ),
- 
+
         .filter_tx_ch_req_o     ( s_filter_tx_ch_req      ),
         .filter_tx_ch_addr_o    ( s_filter_tx_ch_addr     ),
         .filter_tx_ch_datasize_o( s_filter_tx_ch_datasize ),
@@ -424,6 +424,8 @@ module udma_core
 
         .cfg_bincu_threshold_o     ( s_bincu_cfg_threshold ),
         .cfg_bincu_counter_o       ( s_bincu_cfg_counter   ),
+
+        .filter_done_i             ( filter_eot_o          ),
 
         .cg_value_o(s_cg_value),
         .cg_core_o(s_clk_core_en),

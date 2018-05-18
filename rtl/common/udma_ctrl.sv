@@ -99,6 +99,8 @@ module udma_ctrl
     output logic                      [31:0] cfg_bincu_threshold_o,
     output logic            [TRANS_SIZE-1:0] cfg_bincu_counter_o,
 
+    input  logic                             filter_done_i,
+
     input  logic                             event_valid_i,
     input  logic                       [7:0] event_data_i,
     output logic                             event_ready_o,
@@ -106,8 +108,8 @@ module udma_ctrl
     output logic                       [3:0] event_o
 );
 
-    logic [15:0] r_cg;
-    logic [15:0] r_rst;
+    logic      [15:0] r_cg;
+    logic      [15:0] r_rst;
     logic [3:0] [7:0] r_cmp_evt;
 
     logic [1:0]  [L2_AWIDTH_NOAL-1:0] r_filter_tx_start_addr;
@@ -130,42 +132,67 @@ module udma_ctrl
     logic                      [31:0] r_au_reg1;
     logic                      [31:0] r_bincu_threshold;
     logic            [TRANS_SIZE-1:0] r_bincu_counter;
-
     logic                       [2:0] r_filter_mode;
+
+    logic [1:0]  [L2_AWIDTH_NOAL-1:0] r_commit_filter_tx_start_addr;
+    logic [1:0]                 [1:0] r_commit_filter_tx_datasize;
+    logic [1:0]                 [1:0] r_commit_filter_tx_mode;
+    logic [1:0]      [TRANS_SIZE-1:0] r_commit_filter_tx_len0;
+    logic [1:0]      [TRANS_SIZE-1:0] r_commit_filter_tx_len1;
+    logic [1:0]      [TRANS_SIZE-1:0] r_commit_filter_tx_len2;
+    logic        [L2_AWIDTH_NOAL-1:0] r_commit_filter_rx_start_addr;
+    logic                       [1:0] r_commit_filter_rx_datasize;
+    logic                       [1:0] r_commit_filter_rx_mode;
+    logic            [TRANS_SIZE-1:0] r_commit_filter_rx_len0;
+    logic            [TRANS_SIZE-1:0] r_commit_filter_rx_len1;
+    logic            [TRANS_SIZE-1:0] r_commit_filter_rx_len2;
+    logic                             r_commit_au_use_signed;
+    logic                             r_commit_au_bypass;
+    logic                       [3:0] r_commit_au_mode;
+    logic                       [4:0] r_commit_au_shift;
+    logic                      [31:0] r_commit_au_reg0;
+    logic                      [31:0] r_commit_au_reg1;
+    logic                      [31:0] r_commit_bincu_threshold;
+    logic            [TRANS_SIZE-1:0] r_commit_bincu_counter;
+    logic                       [2:0] r_commit_filter_mode;
+
     logic                             r_filter_start;
 
     logic                [4:0] s_wr_addr;
     logic                [4:0] s_rd_addr;
 
+    logic s_sample_commit;
+    logic s_set_pending;
+    logic s_clr_pending;
+    logic r_pending;
+
+    enum logic [1:0] { ST_IDLE, ST_SAMPLE, ST_BUSY} r_state,s_state;
+
     assign s_wr_addr = (cfg_valid_i & ~cfg_rwn_i) ? cfg_addr_i : 5'h0;
     assign s_rd_addr = (cfg_valid_i &  cfg_rwn_i) ? cfg_addr_i : 5'h0;
 
-    assign cfg_filter_tx_start_addr_o = r_filter_tx_start_addr;
-    assign cfg_filter_tx_datasize_o   = r_filter_tx_datasize;
-    assign cfg_filter_tx_mode_o       = r_filter_tx_mode;
-    assign cfg_filter_tx_len0_o       = r_filter_tx_len0;
-    assign cfg_filter_tx_len1_o       = r_filter_tx_len1;
-    assign cfg_filter_tx_len2_o       = r_filter_tx_len2;
+    assign cfg_filter_tx_start_addr_o = r_commit_filter_tx_start_addr;
+    assign cfg_filter_tx_datasize_o   = r_commit_filter_tx_datasize;
+    assign cfg_filter_tx_mode_o       = r_commit_filter_tx_mode;
+    assign cfg_filter_tx_len0_o       = r_commit_filter_tx_len0;
+    assign cfg_filter_tx_len1_o       = r_commit_filter_tx_len1;
+    assign cfg_filter_tx_len2_o       = r_commit_filter_tx_len2;
+    assign cfg_filter_rx_start_addr_o = r_commit_filter_rx_start_addr;
+    assign cfg_filter_rx_datasize_o   = r_commit_filter_rx_datasize;
+    assign cfg_filter_rx_mode_o       = r_commit_filter_rx_mode;
+    assign cfg_filter_rx_len0_o       = r_commit_filter_rx_len0;
+    assign cfg_filter_rx_len1_o       = r_commit_filter_rx_len1;
+    assign cfg_filter_rx_len2_o       = r_commit_filter_rx_len2;
+    assign cfg_filter_mode_o          = r_commit_filter_mode;
+    assign cfg_au_use_signed_o        = r_commit_au_use_signed;
+    assign cfg_au_bypass_o            = r_commit_au_bypass;
+    assign cfg_au_mode_o              = r_commit_au_mode;
+    assign cfg_au_shift_o             = r_commit_au_shift;
+    assign cfg_au_reg0_o              = r_commit_au_reg0;
+    assign cfg_au_reg1_o              = r_commit_au_reg1;
+    assign cfg_bincu_counter_o        = r_commit_bincu_counter;
+    assign cfg_bincu_threshold_o      = r_commit_bincu_threshold;
 
-    assign cfg_filter_rx_start_addr_o = r_filter_rx_start_addr;
-    assign cfg_filter_rx_datasize_o   = r_filter_rx_datasize;
-    assign cfg_filter_rx_mode_o       = r_filter_rx_mode;
-    assign cfg_filter_rx_len0_o       = r_filter_rx_len0;
-    assign cfg_filter_rx_len1_o       = r_filter_rx_len1;
-    assign cfg_filter_rx_len2_o       = r_filter_rx_len2;
-
-    assign cfg_filter_mode_o   = r_filter_mode;
-    assign cfg_filter_start_o  = r_filter_start;
-
-    assign cfg_au_use_signed_o = r_au_use_signed;
-    assign cfg_au_bypass_o     = r_au_bypass;
-    assign cfg_au_mode_o       = r_au_mode;
-    assign cfg_au_shift_o      = r_au_shift;
-    assign cfg_au_reg0_o       = r_au_reg0;
-    assign cfg_au_reg1_o       = r_au_reg1;
-
-    assign cfg_bincu_counter_o = r_bincu_counter;
-    assign cfg_bincu_threshold_o = r_bincu_threshold;
 
     assign cg_value_o  = r_cg;
     assign cg_core_o   = |r_cg; //if any peripheral enabled then enable the top
@@ -178,6 +205,143 @@ module udma_ctrl
         for (int i=0;i<4;i++)
         begin   
             event_o[i] = event_valid_i & (event_data_i == r_cmp_evt[i]);
+        end
+    end
+
+    always_comb begin : proc_pending
+        s_sample_commit  = 1'b0;
+        s_set_pending    = 1'b0;
+        s_clr_pending    = 1'b0;
+        s_state          = r_state;
+        cfg_filter_start_o = 1'b0;
+
+        case(r_state)
+            ST_IDLE:
+            begin
+                if(r_filter_start)
+                begin
+                    s_sample_commit = 1'b1;
+                    s_state         = ST_SAMPLE;
+                end
+            end
+            ST_SAMPLE:
+            begin
+                cfg_filter_start_o = 1'b1;
+                s_state = ST_BUSY;
+            end
+            ST_BUSY:
+            begin
+                if(r_filter_start)
+                begin
+                    if(filter_done_i)
+                    begin
+                        s_sample_commit = 1'b1;
+                        s_state         = ST_SAMPLE;
+                    end
+                    else
+                    begin
+                        s_set_pending = 1'b1;
+                    end
+                end
+                else
+                begin
+                    if(filter_done_i)
+                    begin
+                        if(r_pending)
+                        begin
+                            s_sample_commit = 1'b1;
+                            s_state         = ST_SAMPLE;
+                            s_clr_pending   = 1'b1;
+                        end
+                        else
+                        begin
+                            s_state = ST_IDLE;
+                        end
+                    end
+                end
+            end
+        endcase  
+    end
+
+    always_ff @(posedge clk_i, negedge rstn_i) 
+    begin
+        if(~rstn_i) 
+        begin
+            r_state <= ST_IDLE;
+        end
+        else
+            r_state <= s_state;
+    end
+
+    always_ff @(posedge clk_i, negedge rstn_i) 
+    begin
+        if(~rstn_i) 
+        begin
+            r_pending                        <= 0;
+            r_commit_filter_tx_start_addr[0] <= 0;
+            r_commit_filter_tx_datasize[0]   <= 0;
+            r_commit_filter_tx_mode[0]       <= 0;
+            r_commit_filter_tx_len0[0]       <= 0;
+            r_commit_filter_tx_len1[0]       <= 0;
+            r_commit_filter_tx_len2[0]       <= 0;
+            r_commit_filter_tx_start_addr[1] <= 0;
+            r_commit_filter_tx_datasize[1]   <= 0;
+            r_commit_filter_tx_mode[1]       <= 0;
+            r_commit_filter_tx_len0[1]       <= 0;
+            r_commit_filter_tx_len1[1]       <= 0;
+            r_commit_filter_tx_len2[1]       <= 0;
+            r_commit_filter_rx_start_addr    <= 0;
+            r_commit_filter_rx_datasize      <= 0;
+            r_commit_filter_rx_mode          <= 0;
+            r_commit_filter_rx_len0          <= 0;
+            r_commit_filter_rx_len1          <= 0;
+            r_commit_filter_rx_len2          <= 0;
+            r_commit_au_use_signed           <= 0;
+            r_commit_au_bypass               <= 0;
+            r_commit_au_mode                 <= 0;
+            r_commit_au_shift                <= 0;
+            r_commit_au_reg0                 <= 0;
+            r_commit_au_reg1                 <= 0;
+            r_commit_bincu_threshold         <= 0;
+            r_commit_bincu_counter           <= 0;
+            r_commit_filter_mode             <= 0;
+        end
+        else
+        begin
+            if(s_sample_commit)
+            begin
+                r_commit_filter_tx_start_addr[0] <= r_filter_tx_start_addr[0];
+                r_commit_filter_tx_datasize[0]   <= r_filter_tx_datasize[0]  ;
+                r_commit_filter_tx_mode[0]       <= r_filter_tx_mode[0]      ;
+                r_commit_filter_tx_len0[0]       <= r_filter_tx_len0[0]      ;
+                r_commit_filter_tx_len1[0]       <= r_filter_tx_len1[0]      ;
+                r_commit_filter_tx_len2[0]       <= r_filter_tx_len2[0]      ;
+                r_commit_filter_tx_start_addr[1] <= r_filter_tx_start_addr[1];
+                r_commit_filter_tx_datasize[1]   <= r_filter_tx_datasize[1]  ;
+                r_commit_filter_tx_mode[1]       <= r_filter_tx_mode[1]      ;
+                r_commit_filter_tx_len0[1]       <= r_filter_tx_len0[1]      ;
+                r_commit_filter_tx_len1[1]       <= r_filter_tx_len1[1]      ;
+                r_commit_filter_tx_len2[1]       <= r_filter_tx_len2[1]      ;
+                r_commit_filter_rx_start_addr    <= r_filter_rx_start_addr   ;
+                r_commit_filter_rx_datasize      <= r_filter_rx_datasize     ;
+                r_commit_filter_rx_mode          <= r_filter_rx_mode         ;
+                r_commit_filter_rx_len0          <= r_filter_rx_len0         ;
+                r_commit_filter_rx_len1          <= r_filter_rx_len1         ;
+                r_commit_filter_rx_len2          <= r_filter_rx_len2         ;
+                r_commit_au_use_signed           <= r_au_use_signed          ;
+                r_commit_au_bypass               <= r_au_bypass              ;
+                r_commit_au_mode                 <= r_au_mode                ;
+                r_commit_au_shift                <= r_au_shift               ;
+                r_commit_au_reg0                 <= r_au_reg0                ;
+                r_commit_au_reg1                 <= r_au_reg1                ;
+                r_commit_bincu_threshold         <= r_bincu_threshold        ;
+                r_commit_bincu_counter           <= r_bincu_counter          ;
+                r_commit_filter_mode             <= r_filter_mode            ;
+            end
+            if(s_clr_pending)
+                r_pending <= 1'b0;
+            else if(s_set_pending)
+                r_pending <= 1'b1;
         end
     end
 
@@ -200,22 +364,22 @@ module udma_ctrl
             r_filter_tx_len0[1]       <= 0;
             r_filter_tx_len1[1]       <= 0;
             r_filter_tx_len2[1]       <= 0;
-            r_filter_rx_start_addr <= 0;
-            r_filter_rx_datasize   <= 0;
-            r_filter_rx_mode       <= 0;
-            r_filter_rx_len0       <= 0;
-            r_filter_rx_len1       <= 0;
-            r_filter_rx_len2       <= 0;
-            r_au_use_signed        <= 0;
-            r_au_bypass            <= 0;
-            r_au_mode              <= 0;
-            r_au_shift             <= 0;
-            r_au_reg0              <= 0;
-            r_au_reg1              <= 0;
-            r_bincu_threshold      <= 0;
-            r_bincu_counter        <= 0;
-            r_filter_mode          <= 0;
-            r_filter_start         <= 0;
+            r_filter_rx_start_addr    <= 0;
+            r_filter_rx_datasize      <= 0;
+            r_filter_rx_mode          <= 0;
+            r_filter_rx_len0          <= 0;
+            r_filter_rx_len1          <= 0;
+            r_filter_rx_len2          <= 0;
+            r_au_use_signed           <= 0;
+            r_au_bypass               <= 0;
+            r_au_mode                 <= 0;
+            r_au_shift                <= 0;
+            r_au_reg0                 <= 0;
+            r_au_reg1                 <= 0;
+            r_bincu_threshold         <= 0;
+            r_bincu_counter           <= 0;
+            r_filter_mode             <= 0;
+            r_filter_start            <= 0;
         end
         else
         begin
