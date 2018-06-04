@@ -350,13 +350,13 @@ module udma_core
       begin
         if(i<N_PERIPHS)
         begin
-          s_periph_ready[i]  = periph_ready_i[i];
-          s_periph_data_from = periph_data_from_i[i];
+          s_periph_ready[i]     = periph_ready_i[i];
+          s_periph_data_from[i] = periph_data_from_i[i];
         end
         else
         begin
-          s_periph_ready[i]  = 1'b1;
-          s_periph_data_from = 32'h0;
+          s_periph_ready[i]     = 1'b1;
+          s_periph_data_from[i] = 32'h0;
         end
       end
       s_periph_ready[15]     = s_periph_ready_from_cgunit;
