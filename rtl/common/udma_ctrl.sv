@@ -55,7 +55,7 @@
 module udma_ctrl
   #(
     parameter L2_AWIDTH_NOAL = 15,
-    parameter TRANS_SIZE     = 15 
+    parameter TRANS_SIZE     = 16 
     )
    (
 	input  logic 	                         clk_i,
