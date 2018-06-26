@@ -534,18 +534,18 @@ module udma_ctrl
         `REG_TX_CH1_LEN2:
             cfg_data_o[TRANS_SIZE-1:0] = r_filter_tx_len2[1];
         `REG_RX_CH_ADD:
-            cfg_data_o[L2_AWIDTH_NOAL-1:0] = r_filter_rx_start_addr[1];
+            cfg_data_o[L2_AWIDTH_NOAL-1:0] = r_filter_rx_start_addr;
         `REG_RX_CH_CFG:
         begin
-           cfg_data_o[1:0] = r_filter_rx_datasize[1];
-           cfg_data_o[9:8] = r_filter_rx_mode[1]    ;
+           cfg_data_o[1:0] = r_filter_rx_datasize;
+           cfg_data_o[9:8] = r_filter_rx_mode;
         end
         `REG_RX_CH_LEN0:
-            cfg_data_o[15:0] = r_filter_rx_len0[1];
+            cfg_data_o[15:0] = r_filter_rx_len0;
         `REG_RX_CH_LEN1:
-            cfg_data_o[15:0] = r_filter_rx_len1[1];
+            cfg_data_o[15:0] = r_filter_rx_len1;
         `REG_RX_CH_LEN2:
-            cfg_data_o[15:0] = r_filter_rx_len2[1];
+            cfg_data_o[15:0] = r_filter_rx_len2;
         `REG_AU_CFG:
         begin
             cfg_data_o[0]     = r_au_use_signed;
