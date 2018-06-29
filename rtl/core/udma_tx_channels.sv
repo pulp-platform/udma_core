@@ -221,7 +221,7 @@ module udma_tx_channels
       begin
         if(r_grant[N_CHANNELS+i])
         begin
-          s_addr      = r_ext_addr;
+          s_addr      = r_in_addr;
         end
       end
     end
