@@ -30,7 +30,7 @@ module udma_ch_addrgen
     input  logic      [TRANS_SIZE-1 : 0] cfg_size_i,
     input  logic                         cfg_continuous_i,
     input  logic                         cfg_en_i,
-    input  logic                         cfg_filter_i,
+    input  logic                 [1 : 0] cfg_filter_i,
     input  logic                         cfg_clr_i,
 
     input  logic                         int_not_stall_i,
@@ -45,19 +45,19 @@ module udma_ch_addrgen
     output logic                         int_ch_en_prev_o,
     output logic                         int_ch_events_o,
     output logic                         int_ch_sot_o,
-    output logic                         int_filter_o
+    output logic                 [1 : 0] int_filter_o
   );
 
     logic [L2_AWIDTH_NOAL-1 : 0] r_addresses;
     logic     [TRANS_SIZE-1 : 0] r_counters;
-    logic                        r_filter;
+    logic                [1 : 0] r_filter;
     logic                        r_en;
     logic                        r_event;
     logic                        r_ch_en;
 
     logic [L2_AWIDTH_NOAL-1 : 0] s_addresses;
     logic     [TRANS_SIZE-1 : 0] s_counters;
-    logic                        s_filter;
+    logic                [1 : 0] s_filter;
     logic                        s_en;
     logic                        s_event;
     logic                        s_ch_en;
