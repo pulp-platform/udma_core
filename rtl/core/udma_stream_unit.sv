@@ -1,8 +1,8 @@
 module udma_stream_unit
      #(
-          parameter TRANS_SIZE        = 16,
+          parameter L2_AWIDTH_NOAL    = 16,
           parameter DATA_WIDTH        = 32,
-          parameter STREAM_ID_SIZE    = 2,
+          parameter STREAM_ID_WIDTH    = 2,
           parameter INST_ID           = 0
      )
      (
@@ -10,13 +10,13 @@ module udma_stream_unit
           input  logic                        rstn_i,
           input  logic                        cmd_clr_i,
           output logic                        tx_ch_req_o,
-          output logic     [TRANS_SIZE-1 : 0] tx_ch_addr_o,
+          output logic [L2_AWIDTH_NOAL-1 : 0] tx_ch_addr_o,
           output logic                [1 : 0] tx_ch_datasize_o,
           input  logic                        tx_ch_gnt_i,
           input  logic                        tx_ch_valid_i,
           input  logic     [DATA_WIDTH-1 : 0] tx_ch_data_i,
           output logic                        tx_ch_ready_o,  
-          input  logic [STREAM_ID_SIZE-1 : 0] in_stream_dest_i,
+          input  logic [STREAM_ID_WIDTH-1 : 0] in_stream_dest_i,
           input  logic     [DATA_WIDTH-1 : 0] in_stream_data_i,
           input  logic                [1 : 0] in_stream_datasize_i,
           input  logic                        in_stream_valid_i,
@@ -29,8 +29,8 @@ module udma_stream_unit
           output logic                        out_stream_sot_o,
           output logic                        out_stream_eot_o,
           input  logic                        out_stream_ready_i,
-          input  logic     [TRANS_SIZE-1 : 0] spoof_addr_i, 
-          input  logic [STREAM_ID_SIZE-1 : 0] spoof_dest_i,
+          input  logic [L2_AWIDTH_NOAL-1 : 0] spoof_addr_i, 
+          input  logic [STREAM_ID_WIDTH-1 : 0] spoof_dest_i,
           input  logic                [1 : 0] spoof_datasize_i,
           input  logic                        spoof_req_i,
           input  logic                        spoof_gnt_i
@@ -45,11 +45,11 @@ module udma_stream_unit
      logic          s_trans_rd;
      logic          s_stream_sel;
 
-     logic [TRANS_SIZE-1:0] r_wr_ptr;
-     logic [TRANS_SIZE-1:0] r_rd_ptr; 
-     logic [TRANS_SIZE-1:0] r_jump_dst;
-     logic [TRANS_SIZE-1:0] r_jump_src;
-     logic [TRANS_SIZE-1:0] s_datasize_toadd;
+     logic [L2_AWIDTH_NOAL-1:0] r_wr_ptr;
+     logic [L2_AWIDTH_NOAL-1:0] r_rd_ptr; 
+     logic [L2_AWIDTH_NOAL-1:0] r_jump_dst;
+     logic [L2_AWIDTH_NOAL-1:0] r_jump_src;
+     logic [L2_AWIDTH_NOAL-1:0] s_datasize_toadd;
      logic            [1:0] r_datasize;
 
      logic                  s_fifo_out_req  ;
