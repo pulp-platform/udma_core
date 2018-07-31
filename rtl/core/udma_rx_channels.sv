@@ -185,7 +185,7 @@ module udma_rx_channels
     assign lin_ch_curr_addr_o = s_curr_addr;
     assign lin_ch_en_o        = s_ch_en;
 
-    assign s_fifoin        = {s_stream_storel2,s_stream_id,r_dest,r_size,s_addr[TRANS_SIZE-1:0],r_data};
+    assign s_fifoin        = {s_stream_storel2,s_stream_id,r_dest,r_size,s_addr[L2_AWIDTH_NOAL-1:0],r_data};
     assign s_fifoin_stream = {s_sot,s_eot,r_dest,r_size,r_data};
 
     assign s_l2_data        = s_fifoout[DATA_WIDTH-1:0];
@@ -225,15 +225,15 @@ module udma_rx_channels
 
     generate
       if(TRANS_SIZE < 24)
-        assign s_l2_out_addr  = {  8'h1C,{(32-TRANS_SIZE-10){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+        assign s_l2_out_addr  = {  8'h1C,{(32-TRANS_SIZE-8){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       else
         assign s_l2_out_addr  = {  8'h1C,s_l2_addr[23:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       if(TRANS_SIZE < 20)
-        assign s_apb_out_addr  = { 12'h1A1,{(32-TRANS_SIZE-10){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+        assign s_apb_out_addr  = { 12'h1A1,{(32-TRANS_SIZE-12){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       else
         assign s_apb_out_addr  = { 12'h1A1,s_l2_addr[19:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       if(TRANS_SIZE < 24)
-        assign s_clu_out_addr  = {  8'h10,{(32-TRANS_SIZE-10){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+        assign s_clu_out_addr  = {  8'h10,{(32-TRANS_SIZE-8){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       else
         assign s_clu_out_addr  = {  8'h10,s_l2_addr[23:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
     endgenerate

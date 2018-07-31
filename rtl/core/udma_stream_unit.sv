@@ -68,6 +68,7 @@ module udma_stream_unit
      logic                  s_sample_wr;
      logic                  s_sample_wr_start;
      logic                  r_err;
+     logic                  s_stream_buf_en;
 
      enum logic [1:0] {ST_IDLE,ST_BUF_TRAN,ST_BUF_WAIT,ST_STREAM} s_state,r_state;
 
@@ -88,14 +89,22 @@ module udma_stream_unit
      assign s_wr_ptr_guess = r_wr_ptr + s_datasize_toadd;
      assign s_is_jump      = (spoof_addr_i != s_wr_ptr_guess);
 
+     assign tx_ch_req_o = s_fifo_out_req & s_stream_buf_en;
+     assign s_fifo_out_gnt = tx_ch_gnt_i & s_stream_buf_en;
+     assign s_fifo_out_valid = tx_ch_valid_i;
+     assign s_fifo_out_data = tx_ch_data_i;
+     assign tx_ch_ready_o = s_fifo_out_ready;
+     assign tx_ch_addr_o = r_rd_ptr;
+     assign tx_ch_datasize_o = 'h0;
+
      io_tx_fifo #(
           .DATA_WIDTH(DATA_WIDTH),
           .BUFFER_DEPTH(4)
      ) i_fifo (
-          .clk_i   (  ),
-          .rstn_i  (  ),
+          .clk_i   ( clk_i ),
+          .rstn_i  ( rstn_i ),
 
-          .clr_i   (  ),
+          .clr_i   ( cmd_clr_i ),
 
           .req_o   ( s_fifo_out_req   ),
           .gnt_i   ( s_fifo_out_gnt   ),
@@ -134,6 +143,8 @@ module udma_stream_unit
 
     always_comb
     begin
+        s_fifo_in_ready = 1'b0;
+        s_stream_buf_en = 1'b0;
         s_state         = r_state;
         s_req                = 1'b0;
         s_stream_sel         = 1'b0;

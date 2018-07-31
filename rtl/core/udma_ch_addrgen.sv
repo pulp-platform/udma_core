@@ -100,8 +100,9 @@ module udma_ch_addrgen
 
     assign int_ch_curr_addr_o  = r_addresses;
     assign int_ch_bytes_left_o = r_counters;
-    assign int_filter_o = r_stream;
-      
+    assign int_stream_o    = r_stream;
+    assign int_stream_id_o = r_stream_id;
+
     always_comb 
     begin : proc_pending_en
       s_pending_en = r_pending_en;

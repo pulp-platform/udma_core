@@ -27,7 +27,8 @@
 module udma_ctrl
   #(
     parameter L2_AWIDTH_NOAL = 15,
-    parameter TRANS_SIZE     = 15 
+    parameter TRANS_SIZE     = 15,
+    parameter N_PERIPHS      = 6 
     )
    (
 	input  logic 	                         clk_i,
@@ -40,8 +41,8 @@ module udma_ctrl
     output logic                      [31:0] cfg_data_o,
 	output logic                             cfg_ready_o,
 
-    output logic                      [15:0] rst_value_o,
-    output logic                      [15:0] cg_value_o,
+    output logic             [N_PERIPHS-1:0] rst_value_o,
+    output logic             [N_PERIPHS-1:0] cg_value_o,
     output logic                             cg_core_o,
 
     input  logic                             event_valid_i,
@@ -51,9 +52,9 @@ module udma_ctrl
     output logic                       [3:0] event_o
 );
 
-    logic      [15:0] r_cg;
-    logic      [15:0] r_rst;
-    logic [3:0] [7:0] r_cmp_evt;
+    logic [N_PERIPHS-1:0]       r_cg;
+    logic [N_PERIPHS-1:0]       r_rst;
+    logic           [3:0] [7:0] r_cmp_evt;
 
 
     logic                [4:0] s_wr_addr;
@@ -99,9 +100,9 @@ module udma_ctrl
             begin
                 case (s_wr_addr)
                 `REG_CG:
-                    r_cg   <= cfg_data_i[15:0];
+                    r_cg   <= cfg_data_i[N_PERIPHS-1:0];
                 `REG_RST:
-                    r_rst  <= cfg_data_i[15:0];
+                    r_rst  <= cfg_data_i[N_PERIPHS-1:0];
                 `REG_CFG_EVT:
                 begin
                     r_cmp_evt[0] <= cfg_data_i[7:0];
@@ -119,9 +120,9 @@ module udma_ctrl
         cfg_data_o = 32'h0;
         case (s_rd_addr)
         `REG_CG:
-            cfg_data_o[15:0] = r_cg;
+            cfg_data_o[N_PERIPHS-1:0] = r_cg;
         `REG_RST:
-            cfg_data_o[15:0] = r_rst;
+            cfg_data_o[N_PERIPHS-1:0] = r_rst;
         `REG_CFG_EVT:
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
         default:

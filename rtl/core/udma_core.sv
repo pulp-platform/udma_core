@@ -148,6 +148,7 @@ module udma_core
     );
 
     localparam N_REAL_TX_EXT_CHANNELS = N_TX_EXT_CHANNELS + N_STREAMS;
+    localparam N_REAL_PERIPHS         = N_PERIPHS + 1;
 
     logic [N_STREAMS-1:0]                             s_tx_ch_req;
     logic [N_STREAMS-1:0]      [L2_AWIDTH_NOAL-1 : 0] s_tx_ch_addr;
@@ -172,27 +173,29 @@ module udma_core
     logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_ready;
     logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_events;
 
-    logic        [31:0] s_periph_data_to;
-    logic         [4:0] s_periph_addr;
-    logic               s_periph_rwn;
-    logic [15:0] [31:0] s_periph_data_from;
-    logic [15:0]        s_periph_valid;
-    logic [15:0]        s_periph_ready;
+    logic                      [31:0] s_periph_data_to;
+    logic                       [4:0] s_periph_addr;
+    logic                             s_periph_rwn;
+    logic [N_REAL_PERIPHS-1:0] [31:0] s_periph_data_from;
+    logic [N_REAL_PERIPHS-1:0]        s_periph_valid;
+    logic [N_REAL_PERIPHS-1:0]        s_periph_ready;
 
-    logic               s_periph_ready_from_cgunit;
-    logic        [31:0] s_periph_data_from_cgunit;
-    logic        [15:0] s_cg_value;
+    logic                 s_periph_ready_from_cgunit;
+    logic          [31:0] s_periph_data_from_cgunit;
+    logic [N_PERIPHS-1:0] s_cg_value;
 
     logic               s_clk_core;
-    logic               s_filter_stream_sof;
-    logic               s_filter_stream_eof;
-    logic               s_clk_filter;
     logic               s_clk_core_en;
 
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
     assign periph_rwn_o     = s_periph_rwn;
-    assign periph_valid_o   = s_periph_valid[N_PERIPHS-1:0];
+    assign periph_valid_o   = s_periph_valid[N_REAL_PERIPHS-1:1];
+    assign s_periph_ready[0]                      = s_periph_ready_from_cgunit;
+    assign s_periph_data_from[0]                  = s_periph_data_from_cgunit;
+    assign s_periph_ready[N_REAL_PERIPHS-1:1]     = periph_ready_i;
+    assign s_periph_data_from[N_REAL_PERIPHS-1:1] = periph_data_from_i;
+   
 
     always_comb
     begin
@@ -332,28 +335,9 @@ module udma_core
 
     );
 
-    always_comb
-    begin
-      for(int i=1;i<16;i++)
-      begin
-        if(i<(N_PERIPHS+1))
-        begin
-          s_periph_ready[i+1]     = periph_ready_i[i];
-          s_periph_data_from[i+1] = periph_data_from_i[i];
-        end
-        else
-        begin
-          s_periph_ready[i]     = 1'b1;
-          s_periph_data_from[i] = 32'h0;
-        end
-      end
-      s_periph_ready[0]     = s_periph_ready_from_cgunit;
-      s_periph_data_from[0] = s_periph_data_from_cgunit;
-    end
-
-   
     udma_apb_if #(
-        .APB_ADDR_WIDTH(APB_ADDR_WIDTH)
+        .APB_ADDR_WIDTH(APB_ADDR_WIDTH),
+        .N_PERIPHS(N_REAL_PERIPHS)
     ) u_apb_if (
         .PADDR(PADDR),
         .PWDATA(PWDATA),
@@ -374,7 +358,8 @@ module udma_core
 
     udma_ctrl #(
       .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
-      .TRANS_SIZE    (TRANS_SIZE    )
+      .TRANS_SIZE    (TRANS_SIZE    ),
+      .N_PERIPHS     (N_PERIPHS     )
     )  u_udma_ctrl (
         .clk_i(sys_clk_i),
         .rstn_i(HRESETn),
