@@ -265,6 +265,7 @@ module udma_tx_channels
     always_comb
     begin: gen_size
       s_in_size = 0;
+      s_in_dest = 0;
       for(int i=0;i<N_LIN_CHANNELS;i++)
         if(s_grant[i])
         begin
