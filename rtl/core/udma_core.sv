@@ -53,9 +53,6 @@ module udma_core
     output logic                        event_ready_o,
     output logic                  [3:0] event_o,
 
-    output logic                        filter_eot_o,
-    output logic                        filter_act_o,
-
     output logic        [N_PERIPHS-1:0] periph_per_clk_o,
     output logic        [N_PERIPHS-1:0] periph_sys_clk_o,
 
