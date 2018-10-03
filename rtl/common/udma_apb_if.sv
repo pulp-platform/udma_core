@@ -22,35 +22,36 @@
 
 module udma_apb_if
 #(
-    parameter APB_ADDR_WIDTH = 12
+    parameter APB_ADDR_WIDTH = 12,
+    parameter N_PERIPHS = 8
 )
 (
-    input  logic [APB_ADDR_WIDTH-1:0] PADDR,
-    input  logic               [31:0] PWDATA,
-    input  logic                      PWRITE,
-    input  logic                      PSEL,
-    input  logic                      PENABLE,
-    output logic               [31:0] PRDATA,
-    output logic                      PREADY,
-    output logic                      PSLVERR,
+    input  logic    [APB_ADDR_WIDTH-1:0] PADDR,
+    input  logic                  [31:0] PWDATA,
+    input  logic                         PWRITE,
+    input  logic                         PSEL,
+    input  logic                         PENABLE,
+    output logic                  [31:0] PRDATA,
+    output logic                         PREADY,
+    output logic                         PSLVERR,
 
-    output logic               [31:0] periph_data_o,
-    output logic                [4:0] periph_addr_o,
-    input  logic  [15:0]       [31:0] periph_data_i,
-    input  logic  [15:0]              periph_ready_i,
-    output logic               [15:0] periph_valid_o,
-    output logic                      periph_rwn_o
+    output logic                  [31:0] periph_data_o,
+    output logic                   [4:0] periph_addr_o,
+    input  logic  [N_PERIPHS-1:0] [31:0] periph_data_i,
+    input  logic  [N_PERIPHS-1:0]        periph_ready_i,
+    output logic  [N_PERIPHS-1:0]        periph_valid_o,
+    output logic                         periph_rwn_o
 
 );
 
-    logic [3:0] s_periph_sel;
+    logic [4:0] s_periph_sel;
     logic       s_periph_valid;
 
     assign periph_addr_o  = PADDR[6:2];
     assign periph_rwn_o   = ~PWRITE;
     assign periph_data_o  = PWDATA;
 
-    assign s_periph_sel   = PADDR[10:7];
+    assign s_periph_sel   = PADDR[11:7];
     assign s_periph_valid = PSEL & PENABLE;
 
     assign PSLVERR = 1'b0;
@@ -58,7 +59,7 @@ module udma_apb_if
     always_comb begin : proc_PRDATA
         PRDATA = 'h0;
         PREADY = 1'b0;
-        for (int i=0;i<16;i++)
+        for (int i=0;i<N_PERIPHS;i++)
         begin
             if (s_periph_sel == i)
             begin
@@ -70,7 +71,7 @@ module udma_apb_if
     
     always_comb begin : proc_periph_valid
         periph_valid_o = 'h0;
-        for(int i=0;i<16;i++)
+        for(int i=0;i<N_PERIPHS;i++)
         begin
             if(s_periph_valid && (s_periph_sel == i))
                 periph_valid_o[i] = 1'b1;

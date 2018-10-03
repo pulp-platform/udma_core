@@ -1,15 +1,11 @@
 udma_core:
   files: [
     rtl/core/udma_ch_addrgen.sv,
-    rtl/core/udma_filter_au.sv,
-    rtl/core/udma_filter_bincu.sv,
-    rtl/core/udma_filter_rx_dataout.sv,
-    rtl/core/udma_filter.sv,
-    rtl/core/udma_filter_tx_datafetch.sv,
     rtl/core/udma_arbiter.sv,
     rtl/core/udma_core.sv,
     rtl/core/udma_rx_channels.sv,
     rtl/core/udma_tx_channels.sv,
+    rtl/core/udma_stream_unit.sv,
     rtl/common/udma_ctrl.sv,
     rtl/common/udma_apb_if.sv,
     rtl/common/io_clk_gen.sv,

@@ -21,7 +21,8 @@
 module udma_ch_addrgen
   #(
     parameter L2_AWIDTH_NOAL = 18,
-    parameter TRANS_SIZE     = 16
+    parameter TRANS_SIZE     = 16,
+    parameter STREAM_ID_WIDTH = 3
    ) (
     input  logic	                       clk_i,
     input  logic                         rstn_i,
@@ -30,7 +31,8 @@ module udma_ch_addrgen
     input  logic      [TRANS_SIZE-1 : 0] cfg_size_i,
     input  logic                         cfg_continuous_i,
     input  logic                         cfg_en_i,
-    input  logic                         cfg_filter_i,
+    input  logic                 [1 : 0] cfg_stream_i,
+    input  logic [STREAM_ID_WIDTH-1 : 0] cfg_stream_id_i,
     input  logic                         cfg_clr_i,
 
     input  logic                         int_not_stall_i,
@@ -45,19 +47,22 @@ module udma_ch_addrgen
     output logic                         int_ch_en_prev_o,
     output logic                         int_ch_events_o,
     output logic                         int_ch_sot_o,
-    output logic                         int_filter_o
+    output logic                 [1 : 0] int_stream_o,
+    output logic [STREAM_ID_WIDTH-1 : 0] int_stream_id_o
   );
 
-    logic [L2_AWIDTH_NOAL-1 : 0] r_addresses;
-    logic     [TRANS_SIZE-1 : 0] r_counters;
-    logic                        r_filter;
-    logic                        r_en;
-    logic                        r_event;
-    logic                        r_ch_en;
+    logic  [L2_AWIDTH_NOAL-1 : 0] r_addresses;
+    logic      [TRANS_SIZE-1 : 0] r_counters;
+    logic                 [1 : 0] r_stream;
+    logic [STREAM_ID_WIDTH-1 : 0] r_stream_id;
+    logic                         r_en;
+    logic                         r_event;
+    logic                         r_ch_en;
 
     logic [L2_AWIDTH_NOAL-1 : 0] s_addresses;
     logic     [TRANS_SIZE-1 : 0] s_counters;
-    logic                        s_filter;
+    logic                [1 : 0] s_stream;
+    logic [STREAM_ID_WIDTH-1 : 0] s_stream_id;
     logic                        s_en;
     logic                        s_event;
     logic                        s_ch_en;
@@ -95,8 +100,9 @@ module udma_ch_addrgen
 
     assign int_ch_curr_addr_o  = r_addresses;
     assign int_ch_bytes_left_o = r_counters;
-    assign int_filter_o = r_filter;
-      
+    assign int_stream_o    = r_stream;
+    assign int_stream_id_o = r_stream_id;
+
     always_comb 
     begin : proc_pending_en
       s_pending_en = r_pending_en;
@@ -114,7 +120,8 @@ module udma_ch_addrgen
       s_en        = r_en       ;  
       s_ch_en     = r_ch_en    ;  
       s_event     = r_event    ;  
-      s_filter    = r_filter   ;
+      s_stream    = r_stream   ;
+      s_stream_id = r_stream_id;
       s_sot       = r_sot;
       if(cfg_en_i && !r_en) //sample config data when enabling the channel
       begin
@@ -124,7 +131,8 @@ module udma_ch_addrgen
           s_ch_en     =  1'b0;
           s_event     =  1'b0;
           s_sot       =  1'b1;
-          s_filter    =  cfg_filter_i;
+          s_stream    =  cfg_stream_i;
+          s_stream_id = cfg_stream_id_i;
       end
       else if (cfg_clr_i)
       begin
@@ -134,7 +142,7 @@ module udma_ch_addrgen
           s_ch_en     =  1'b0;
           s_event     =  1'b0;
           s_sot       =  1'b0;
-          s_filter    =  1'b0;
+          s_stream    =  1'b0;
       end
       else
       begin
@@ -149,14 +157,15 @@ module udma_ch_addrgen
               s_ch_en = 1'b0;
               s_counters  = '0;
               s_addresses = '0;
-              s_filter    = 1'b0;
+              s_stream    = 1'b0;
               s_sot       = 1'b0;
             end
             else
             begin
               s_counters  = cfg_size_i;      //reload the buffer size
               s_addresses = cfg_startaddr_i; //reload the start address
-              s_filter    = cfg_filter_i;
+              s_stream    = cfg_stream_i;
+              s_stream_id = cfg_stream_id_i;
               s_en        = 1'b1;
               s_ch_en     = 1'b1;
               s_sot       = 1'b1;
@@ -191,7 +200,8 @@ module udma_ch_addrgen
         r_ch_en      <= 1'b0;
         r_event      <= 1'b0;
         r_pending_en <= 1'b0;
-        r_filter     <= 1'b0;
+        r_stream     <= 1'b0;
+        r_stream_id  <=  'h0;
         r_sot        <= 1'b0;
       end else 
       begin
@@ -207,7 +217,8 @@ module udma_ch_addrgen
             r_addresses <= s_addresses; 
             r_en        <= s_en       ; 
             r_ch_en     <= s_ch_en    ; 
-            r_filter    <= s_filter   ;
+            r_stream    <= s_stream;
+            r_stream_id <= s_stream_id;
         end
         else
         begin
@@ -217,7 +228,8 @@ module udma_ch_addrgen
             begin
               r_counters  <= s_counters;
               r_addresses <= s_addresses;
-              r_filter       <= s_filter   ;
+              r_stream    <= s_stream;
+              r_stream_id <= s_stream_id;
               if (!cfg_continuous_i && !r_pending_en)
               begin
                 r_en        <= s_en; 

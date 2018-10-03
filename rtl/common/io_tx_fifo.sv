@@ -22,8 +22,7 @@
 module io_tx_fifo
 #(
     parameter DATA_WIDTH = 32,
-    parameter BUFFER_DEPTH = 2,
-    parameter LOG_BUFFER_DEPTH = `log2(BUFFER_DEPTH)
+    parameter BUFFER_DEPTH = 2
 )
 (
     input  logic                    clk_i,
@@ -42,6 +41,9 @@ module io_tx_fifo
     input  logic [DATA_WIDTH-1 : 0] data_i,
     output logic                    ready_o
 );
+
+    localparam LOG_BUFFER_DEPTH = `log2(BUFFER_DEPTH);
+
     logic [LOG_BUFFER_DEPTH:0]      s_elements;    // number of elements in the buffer
     logic [LOG_BUFFER_DEPTH:0]      s_free_ele;    // number of free elements in the buffer
     logic [LOG_BUFFER_DEPTH:0]      r_inflight; 

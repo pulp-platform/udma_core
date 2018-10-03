@@ -22,12 +22,13 @@
 
 module udma_tx_channels
   #(
-    parameter L2_ADDR_WIDTH  = 32,
-    parameter L2_AWIDTH_NOAL = L2_ADDR_WIDTH+3,
+    parameter L2_AWIDTH_NOAL = 20,
     parameter L2_DATA_WIDTH  = 64,
     parameter DATA_WIDTH     = 32,
-    parameter N_CHANNELS     = 8,
-    parameter TRANS_SIZE     = 16
+    parameter N_LIN_CHANNELS     = 8,
+    parameter N_EXT_CHANNELS = 8,
+    parameter TRANS_SIZE     = 16,
+    parameter STREAM_ID_WIDTH = 1
     )
    (
     input  logic	                        clk_i,
@@ -35,60 +36,60 @@ module udma_tx_channels
     
     output logic                           l2_req_o,
     input  logic                           l2_gnt_i,
-    output logic    [L2_ADDR_WIDTH-1 : 0]  l2_addr_o,
+    output logic                 [31 : 0]  l2_addr_o,
 
     input  logic    [L2_DATA_WIDTH-1 : 0]  l2_rdata_i,
     input  logic                           l2_rvalid_i,
 
-    input  logic [1:0]                         filter_ch_req_i     ,
-    input  logic [1:0]  [L2_AWIDTH_NOAL-1 : 0] filter_ch_addr_i    ,
-    input  logic [1:0]                 [1 : 0] filter_ch_datasize_i,
-    output logic [1:0]                         filter_ch_gnt_o     ,
-    output logic [1:0]                         filter_ch_valid_o   ,
-    output logic [1:0]      [DATA_WIDTH-1 : 0] filter_ch_data_o    ,
-    input  logic [1:0]                         filter_ch_ready_i   ,
+    input  logic [N_EXT_CHANNELS-1:0]                        ext_req_i,
+    input  logic [N_EXT_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] ext_addr_i,
+    input  logic [N_EXT_CHANNELS-1:0]                [1 : 0] ext_datasize_i,
+    input  logic [N_EXT_CHANNELS-1:0]                [1 : 0] ext_destination_i,
+    output logic [N_EXT_CHANNELS-1:0]                        ext_gnt_o,
+    output logic [N_EXT_CHANNELS-1:0]                        ext_valid_o,
+    output logic [N_EXT_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] ext_data_o,
+    input  logic [N_EXT_CHANNELS-1:0]                        ext_ready_i,
 
-    input  logic [N_CHANNELS-1:0]                [1 : 0] ch_datasize_i,
-    input  logic [N_CHANNELS-1:0]                        ch_req_i,
-    output logic [N_CHANNELS-1:0]                        ch_gnt_o,
-    output logic [N_CHANNELS-1:0]                        ch_valid_o,
-    output logic [N_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] ch_data_o,
-    input  logic [N_CHANNELS-1:0]                        ch_ready_i,
-    output logic [N_CHANNELS-1:0]                        ch_events_o,
-    output logic [N_CHANNELS-1:0]                        ch_en_o,
-    output logic [N_CHANNELS-1:0]                        ch_pending_o,
-    output logic [N_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] ch_curr_addr_o,
-    output logic [N_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] ch_bytes_left_o,
+    input  logic [N_LIN_CHANNELS-1:0]                [1 : 0] lin_datasize_i,
+    input  logic [N_LIN_CHANNELS-1:0]                [1 : 0] lin_destination_i,
+    input  logic [N_LIN_CHANNELS-1:0]                        lin_req_i,
+    output logic [N_LIN_CHANNELS-1:0]                        lin_gnt_o,
+    output logic [N_LIN_CHANNELS-1:0]                        lin_valid_o,
+    output logic [N_LIN_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] lin_data_o,
+    input  logic [N_LIN_CHANNELS-1:0]                        lin_ready_i,
+    output logic [N_LIN_CHANNELS-1:0]                        lin_events_o,
+    output logic [N_LIN_CHANNELS-1:0]                        lin_en_o,
+    output logic [N_LIN_CHANNELS-1:0]                        lin_pending_o,
+    output logic [N_LIN_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] lin_curr_addr_o,
+    output logic [N_LIN_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] lin_bytes_left_o,
 
-    input  logic [N_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] cfg_startaddr_i,
-    input  logic [N_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] cfg_size_i,
-    input  logic [N_CHANNELS-1:0]                        cfg_continuous_i,
-    input  logic [N_CHANNELS-1:0]                        cfg_en_i,
-    input  logic [N_CHANNELS-1:0]                        cfg_clr_i
+    input  logic [N_LIN_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] lin_cfg_startaddr_i,
+    input  logic [N_LIN_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] lin_cfg_size_i,
+    input  logic [N_LIN_CHANNELS-1:0]                        lin_cfg_continuous_i,
+    input  logic [N_LIN_CHANNELS-1:0]                        lin_cfg_en_i,
+    input  logic [N_LIN_CHANNELS-1:0]                        lin_cfg_clr_i
 
     );
 
+    localparam  DATASIZE_WIDTH = 2;
+    localparam  DEST_WIDTH     = 2;
+
+    localparam N_CHANNELS_TX  = N_LIN_CHANNELS+N_EXT_CHANNELS;
     localparam ALIGN_BITS     = $clog2(L2_DATA_WIDTH/8);
-    localparam L2_SIZE        = L2_ADDR_WIDTH + ALIGN_BITS;
-    localparam N_CHANNELS_TX  = N_CHANNELS+2;
     localparam LOG_N_CHANNELS = $clog2(N_CHANNELS_TX);
-    localparam INTFIFO_SIZE   = L2_SIZE + LOG_N_CHANNELS + 2;//store addr_data and size and request
+    localparam INTFIFO_SIZE   = L2_AWIDTH_NOAL + LOG_N_CHANNELS + DATASIZE_WIDTH + DEST_WIDTH;//store addr_data and size and request
 
     integer i;
    
    // Internal signals
 
-    logic       [N_CHANNELS_TX-1:0] s_grant;
-    logic       [N_CHANNELS_TX-1:0] r_grant;
-    logic       [N_CHANNELS_TX-1:0] s_req;
-    logic       [N_CHANNELS_TX-1:0] s_gnt;
-
-    logic      [LOG_N_CHANNELS-1:0] s_grant_log;
-
-    logic       [N_CHANNELS_TX-1:0] s_ch_ready;
-
-    logic       [N_CHANNELS-1:0] s_ch_en;
-
+    logic        [N_CHANNELS_TX-1:0] s_grant;
+    logic        [N_CHANNELS_TX-1:0] r_grant;
+    logic        [N_CHANNELS_TX-1:0] s_req;
+    logic        [N_CHANNELS_TX-1:0] s_gnt;
+    logic       [LOG_N_CHANNELS-1:0] s_grant_log;
+    logic        [N_CHANNELS_TX-1:0] s_ch_ready;
+    logic       [N_LIN_CHANNELS-1:0] s_ch_en;
     logic       [LOG_N_CHANNELS-1:0] s_resp;
     logic       [LOG_N_CHANNELS-1:0] r_resp;
     logic       [LOG_N_CHANNELS-1:0] r_resp_dly;
@@ -101,6 +102,8 @@ module udma_tx_channels
     logic                        s_send_req;
 
     logic                      [L2_AWIDTH_NOAL-1:0] s_addr;
+    logic                      [L2_AWIDTH_NOAL-1:0] s_l2_addr;
+    logic                      [DEST_WIDTH-1:0] s_l2_dest;
     logic [N_CHANNELS_TX-1:0]  [L2_AWIDTH_NOAL-1:0] s_curr_addr;
     logic                      [L2_AWIDTH_NOAL-1:0] r_in_addr;
 
@@ -114,6 +117,8 @@ module udma_tx_channels
 
     logic                  [1:0] s_in_size;
     logic                  [1:0] r_in_size;
+    logic                  [1:0] s_in_dest;
+    logic                  [1:0] r_in_dest;
 
     logic         [INTFIFO_SIZE-1:0] s_fifoin;
     logic         [INTFIFO_SIZE-1:0] s_fifoout;
@@ -122,25 +127,50 @@ module udma_tx_channels
     logic s_stall;
     logic s_sample_indata;
 
-    assign ch_curr_addr_o = s_curr_addr;
-    assign ch_en_o = s_ch_en;
-    assign s_fifoin = {s_grant_log,r_in_size,s_addr[L2_SIZE-1:0]};
+    assign lin_curr_addr_o = s_curr_addr;
+    assign lin_en_o = s_ch_en;
+    assign s_fifoin = {r_in_dest,s_grant_log,r_in_size,s_addr[L2_AWIDTH_NOAL-1:0]};
 
-    assign l2_addr_o    = s_fifoout[L2_SIZE-1:ALIGN_BITS];     //{3'b000,s_fifoout[L2_SIZE-1:3]};
+    assign s_l2_addr    = s_fifoout[L2_AWIDTH_NOAL-1:0];
     assign s_addr_lsb   = s_fifoout[ALIGN_BITS-1:0];
-    assign s_trans_size = s_fifoout[L2_SIZE+2-1:L2_SIZE];
-    assign s_resp       = s_fifoout[INTFIFO_SIZE-1:L2_SIZE+2];
+    assign s_trans_size = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH-1:L2_AWIDTH_NOAL];
+    assign s_resp       = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH];
+    assign s_l2_dest    = s_fifoout[INTFIFO_SIZE-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS];
 
-    assign s_req[N_CHANNELS-1:0] = ch_req_i & s_ch_en;
-    assign s_req[N_CHANNELS_TX-1:N_CHANNELS] = filter_ch_req_i;
+    assign s_req[N_LIN_CHANNELS-1:0] = lin_req_i & s_ch_en;
+    assign s_req[N_CHANNELS_TX-1:N_LIN_CHANNELS] = ext_req_i;
 
     assign s_gnt = s_sample_indata ? s_grant : 'h0;
 
     assign s_send_req = r_anygrant;
 
     assign l2_req_o = s_l2_req_o & ~s_stall;
-    assign ch_gnt_o = s_gnt[N_CHANNELS-1:0];
-    assign filter_ch_gnt_o = s_gnt[N_CHANNELS_TX-1:N_CHANNELS];
+
+    assign lin_gnt_o = s_gnt[N_LIN_CHANNELS-1:0];
+    assign ext_gnt_o = s_gnt[N_CHANNELS_TX-1:N_LIN_CHANNELS];
+
+    always_comb 
+    begin
+      l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+      case(s_l2_dest)
+        2'b00:
+        begin
+            l2_addr_o[31:24]  = 8'h1C;
+        end
+        2'b01:
+        begin
+            l2_addr_o[31:20]  = 12'h1A1;
+        end
+        2'b10:
+        begin
+            l2_addr_o[31:24]  = 8'h10;
+        end
+        default:
+        begin
+            l2_addr_o[31:24]  = 8'h1C;
+        end
+        endcase // s_l2_destination    
+    end
 
     udma_arbiter #(
       .N(N_CHANNELS_TX),
@@ -172,31 +202,34 @@ module udma_tx_channels
 
     genvar j;
     generate
-      for (j=0;j<N_CHANNELS;j++)
+      for (j=0;j<N_LIN_CHANNELS;j++)
       begin
         udma_ch_addrgen #(
           .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
-          .TRANS_SIZE(TRANS_SIZE)
+          .TRANS_SIZE(TRANS_SIZE),
+          .STREAM_ID_WIDTH(STREAM_ID_WIDTH)
         ) u_tx_ch_ctrl (
           .clk_i(clk_i),
           .rstn_i(rstn_i),
-          .cfg_startaddr_i(cfg_startaddr_i[j]),
-          .cfg_size_i(cfg_size_i[j]),
-          .cfg_continuous_i(cfg_continuous_i[j]),
-          .cfg_filter_i(1'b0),
-          .cfg_en_i(cfg_en_i[j]),
-          .cfg_clr_i(cfg_clr_i[j]),
+          .cfg_startaddr_i(lin_cfg_startaddr_i[j]),
+          .cfg_size_i(lin_cfg_size_i[j]),
+          .cfg_continuous_i(lin_cfg_continuous_i[j]),
+          .cfg_stream_i(2'b00),
+          .cfg_stream_id_i({STREAM_ID_WIDTH{1'b0}}),
+          .cfg_en_i(lin_cfg_en_i[j]),
+          .cfg_clr_i(lin_cfg_clr_i[j]),
           .int_datasize_i(r_in_size),
           .int_not_stall_i(s_sample_indata),
           .int_ch_curr_addr_o(s_curr_addr[j]),
-          .int_ch_bytes_left_o(ch_bytes_left_o[j]),
+          .int_ch_bytes_left_o(lin_bytes_left_o[j]),
           .int_ch_grant_i(r_grant[j]),
           .int_ch_en_o(),
           .int_ch_sot_o(),
           .int_ch_en_prev_o(s_ch_en[j]),
-          .int_ch_pending_o(ch_pending_o[j]),
-          .int_ch_events_o(ch_events_o[j]),
-          .int_filter_o()
+          .int_ch_pending_o(lin_pending_o[j]),
+          .int_ch_events_o(lin_events_o[j]),
+          .int_stream_o(),
+          .int_stream_id_o()
         );
       end
     endgenerate
@@ -209,58 +242,76 @@ module udma_tx_channels
           s_grant_log = i;    
     end
 
-    always_comb
-    begin: gen_addr
-      s_addr = 0;
-      for(int i=0;i<N_CHANNELS;i++)
+    always_comb 
+    begin: inside_mux
+      s_addr      =  'h0;
+      for(int i=0;i<N_LIN_CHANNELS;i++)
+      begin
         if(r_grant[i])
-          s_addr = s_curr_addr[i];
-      if(r_grant[N_CHANNELS] | r_grant[N_CHANNELS+1])
-        s_addr = r_in_addr;
+        begin
+          s_addr      = s_curr_addr[i];
+        end
+      end
+      for(int i=0;i<N_EXT_CHANNELS;i++)
+      begin
+        if(r_grant[N_LIN_CHANNELS+i])
+        begin
+          s_addr      = r_in_addr;
+        end
+      end
     end
+
 
     always_comb
     begin: gen_size
       s_in_size = 0;
-      for(int i=0;i<N_CHANNELS;i++)
+      s_in_dest = 0;
+      for(int i=0;i<N_LIN_CHANNELS;i++)
         if(s_grant[i])
-          s_in_size = ch_datasize_i[i];
-      if(s_grant[N_CHANNELS])
-        s_in_size = filter_ch_datasize_i[0];
-      if(s_grant[N_CHANNELS+1])
-        s_in_size = filter_ch_datasize_i[1];
+        begin
+          s_in_size = lin_datasize_i[i];
+          s_in_dest = lin_destination_i[i];
+        end
+      for(int i=0;i<N_EXT_CHANNELS;i++)
+        if(s_grant[N_LIN_CHANNELS+i])
+        begin
+          s_in_size = ext_datasize_i[i];
+          s_in_dest = ext_destination_i[i];
+        end
     end
 
     always_comb
     begin: demux_data
-      for(int i=0;i<N_CHANNELS;i++)
+      for(int i=0;i<N_LIN_CHANNELS;i++)
       begin
-        ch_valid_o[i]        = 1'b0;
-        ch_data_o[i]         = 'hDEADBEEF;
+        if(r_resp_dly == i)
+        begin
+          lin_valid_o[i] = r_valid;
+          lin_data_o[i]  = r_data;
+        end
+        else
+        begin
+          lin_valid_o[i] = 1'b0;
+          lin_data_o[i]  = 'hDEADBEEF;
+        end
       end
-      filter_ch_valid_o[0] = 1'b0;
-      filter_ch_data_o[0]  = 'hDEADBEEF;
-      filter_ch_valid_o[1] = 1'b0;
-      filter_ch_data_o[1]  = 'hDEADBEEF;
-      if(r_resp_dly == N_CHANNELS)
+      for(int i=0;i<N_EXT_CHANNELS;i++)
       begin
-        filter_ch_valid_o[0] = r_valid;
-        filter_ch_data_o[0]  = r_data;
-      end
-      else if(r_resp_dly == N_CHANNELS+1)
-      begin
-        filter_ch_valid_o[1] = r_valid;
-        filter_ch_data_o[1]  = r_data;
-      end
-      else
-      begin
-        ch_valid_o[r_resp_dly] = r_valid;
-        ch_data_o[r_resp_dly]  = r_data;
+        if(r_resp_dly == (N_LIN_CHANNELS+i))
+        begin
+          ext_valid_o[i] = r_valid;
+          ext_data_o[i]  = r_data;
+        end
+        else
+        begin
+          ext_valid_o[i] = 1'b0;
+          ext_data_o[i]  = 'hDEADBEEF;
+        end
       end
     end
       
-    assign s_ch_ready[N_CHANNELS-1:0] = ch_ready_i;
-    assign s_ch_ready[N_CHANNELS_TX-1:N_CHANNELS] = filter_ch_ready_i;
+    assign s_ch_ready[N_LIN_CHANNELS-1:0] = lin_ready_i;
+    assign s_ch_ready[N_CHANNELS_TX-1:N_LIN_CHANNELS] = ext_ready_i;
 
     //this may happen only in burst mode when multiple reads are pipelined
     assign s_stall = |(~s_ch_ready & r_resp) & r_valid;    
@@ -274,6 +325,7 @@ module udma_tx_channels
         r_resp_dly  <=  '0;
         r_valid     <=  '0;
         r_in_size   <=  '0;
+        r_in_dest   <=  '0;
         r_size      <=  '0;
         r_addr      <=  '0; 
         r_data      <=  '0;
@@ -294,12 +346,12 @@ module udma_tx_channels
          if (s_sample_indata)
          begin
               r_in_size  <= s_in_size;
+              r_in_dest  <= s_in_dest;
               r_grant    <= s_grant;
               r_anygrant <= s_anygrant;
-              if (s_grant[N_CHANNELS])
-                r_in_addr <= filter_ch_addr_i[0];
-              else if(s_grant[N_CHANNELS+1])
-                r_in_addr <= filter_ch_addr_i[1];
+              for(int i=0;i<N_EXT_CHANNELS;i++)
+                if(s_grant[N_LIN_CHANNELS+i])
+                  r_in_addr <= ext_addr_i[i];
          end
       end
     end
