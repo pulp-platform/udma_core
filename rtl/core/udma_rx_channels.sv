@@ -181,6 +181,11 @@ module udma_rx_channels
     logic                                       s_l2_req;
     logic                                       s_l2_gnt;
 
+    logic                                       s_is_na;
+    logic                                       s_detect_na;
+
+    enum logic {RX_IDLE,RX_NON_ALIGNED} r_rx_state,s_rx_state_next;
+
     assign lin_ch_events_o    = s_ch_events;
     assign lin_ch_curr_addr_o = s_curr_addr;
     assign lin_ch_en_o        = s_ch_en;
@@ -220,7 +225,6 @@ module udma_rx_channels
     assign s_push_filter = r_anygrant & s_target_stream; //push directly to filter only when not using L2 buffer
 
     assign l2_req_o = s_l2_req;
-    assign s_l2_gnt = l2_gnt_i;
     assign s_l2_req_stream = s_l2_req & s_l2_is_stream; //used to spoof the transactions in the streaming unit and update the wr pointer for the L2 buffer
 
     generate
@@ -443,6 +447,48 @@ module udma_rx_channels
           ext_ch_ready_o[i] = 1'b0;
       end
     end
+
+    always_comb
+    begin
+      s_detect_na = 1'b0;
+      case (s_l2_transf_size)
+      2'h1:
+            begin
+               if     (s_l2_addr[1:0] == 2'b11) s_detect_na = 1'b1;
+            end
+      2'h2:
+            begin
+               if     (s_l2_addr[0] || s_l2_addr[1]) s_detect_na = 1'b1;
+            end
+      endcase 
+    end
+
+    always_comb begin : proc_RX_SM
+      s_rx_state_next       = r_rx_state;
+      s_l2_gnt = 1'b0;
+      s_is_na  = 1'b0;
+      case(r_rx_state)
+        RX_IDLE:
+        begin
+          if(s_detect_na)
+          begin
+            s_l2_gnt = 1'b0;
+            if(l2_gnt_i)
+              s_rx_state_next = RX_NON_ALIGNED;
+          end
+          else
+            s_l2_gnt = l2_gnt_i;
+        end
+        RX_NON_ALIGNED:
+        begin
+          s_is_na = 1'b1;
+          s_l2_gnt = l2_gnt_i;
+          if(l2_gnt_i)
+            s_rx_state_next = RX_IDLE;
+        end
+      endcase
+    end
+
       
     always_ff @(posedge clk_i or negedge rstn_i) 
     begin : ff_data
@@ -509,28 +555,27 @@ module udma_rx_channels
                 end
           default:                                  s_l2_be = 8'b00000000;  // default to 64-bit access
           endcase 
-      end
-
-      always_comb
-      begin
-        case (s_l2_be)
-          8'b00001111: l2_wdata_o = {32'h0, s_l2_data[31:0]       };
-          8'b11110000: l2_wdata_o = {       s_l2_data[31:0], 32'h0};
-          8'b00000011: l2_wdata_o = {48'h0, s_l2_data[15:0]       };
-          8'b00001100: l2_wdata_o = {32'h0, s_l2_data[15:0], 16'h0};
-          8'b00110000: l2_wdata_o = {16'h0, s_l2_data[15:0], 32'h0};
-          8'b11000000: l2_wdata_o = {       s_l2_data[15:0], 48'h0};
-          8'b00000001: l2_wdata_o = {56'h0, s_l2_data[7:0]        };
-          8'b00000010: l2_wdata_o = {48'h0, s_l2_data[7:0],   8'h0};
-          8'b00000100: l2_wdata_o = {40'h0, s_l2_data[7:0],  16'h0};
-          8'b00001000: l2_wdata_o = {32'h0, s_l2_data[7:0],  24'h0};
-          8'b00010000: l2_wdata_o = {24'h0, s_l2_data[7:0],  32'h0};
-          8'b00100000: l2_wdata_o = {16'h0, s_l2_data[7:0],  40'h0};
-          8'b01000000: l2_wdata_o = { 8'h0, s_l2_data[7:0],  48'h0};
-          8'b10000000: l2_wdata_o = {       s_l2_data[7:0],  56'h0};
-          default: l2_wdata_o = 64'hDEADABBADEADBEEF;  // Shouldn't be possible
-        endcase
-      end
+        end
+        always_comb
+        begin
+          case (s_l2_be)
+            8'b00001111: l2_wdata_o = {32'h0, s_l2_data[31:0]       };
+            8'b11110000: l2_wdata_o = {       s_l2_data[31:0], 32'h0};
+            8'b00000011: l2_wdata_o = {48'h0, s_l2_data[15:0]       };
+            8'b00001100: l2_wdata_o = {32'h0, s_l2_data[15:0], 16'h0};
+            8'b00110000: l2_wdata_o = {16'h0, s_l2_data[15:0], 32'h0};
+            8'b11000000: l2_wdata_o = {       s_l2_data[15:0], 48'h0};
+            8'b00000001: l2_wdata_o = {56'h0, s_l2_data[7:0]        };
+            8'b00000010: l2_wdata_o = {48'h0, s_l2_data[7:0],   8'h0};
+            8'b00000100: l2_wdata_o = {40'h0, s_l2_data[7:0],  16'h0};
+            8'b00001000: l2_wdata_o = {32'h0, s_l2_data[7:0],  24'h0};
+            8'b00010000: l2_wdata_o = {24'h0, s_l2_data[7:0],  32'h0};
+            8'b00100000: l2_wdata_o = {16'h0, s_l2_data[7:0],  40'h0};
+            8'b01000000: l2_wdata_o = { 8'h0, s_l2_data[7:0],  48'h0};
+            8'b10000000: l2_wdata_o = {       s_l2_data[7:0],  56'h0};
+            default: l2_wdata_o = 64'hDEADABBADEADBEEF;  // Shouldn't be possible
+          endcase
+        end
     end
     else if (L2_DATA_WIDTH == 32)
     begin
@@ -546,12 +591,17 @@ module udma_rx_channels
                 end
           2'h1:
                 begin
-                   if(s_l2_addr[1] == 1'b0)         s_l2_be = 4'b0011;
-                   else                             s_l2_be = 4'b1100;
+                   if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0011;
+                   else if(s_l2_addr[1:0] == 2'b01) s_l2_be = 4'b0110;
+                   else if(s_l2_addr[1:0] == 2'b10) s_l2_be = 4'b1100;
+                   else                             s_l2_be = s_is_na ? 4'b0001 : 4'b1000;
                 end
           2'h2: 
                 begin
-                                                    s_l2_be = 4'b1111;
+                   if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b1111;
+                   else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0001 : 4'b1110;
+                   else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0011 : 4'b1100;
+                   else                             s_l2_be = s_is_na ? 4'b0111 : 4'b1000;
                 end
           default:                                  s_l2_be = 4'b0000; 
           endcase 
@@ -559,16 +609,30 @@ module udma_rx_channels
       
       always_comb
       begin
-        case (s_l2_be)
-          4'b1111: l2_wdata_o =         s_l2_data[31:0];
-          4'b0011: l2_wdata_o = {16'h0, s_l2_data[15:0]       };
-          4'b1100: l2_wdata_o = {       s_l2_data[15:0], 16'h0};
-          4'b0001: l2_wdata_o = {24'h0, s_l2_data[7:0]        };
-          4'b0010: l2_wdata_o = {16'h0, s_l2_data[7:0],   8'h0};
-          4'b0100: l2_wdata_o = { 8'h0, s_l2_data[7:0],  16'h0};
-          4'b1000: l2_wdata_o = {       s_l2_data[7:0],  24'h0};
-          default: l2_wdata_o = 32'hDEADBEEF;  // Shouldn't be possible
-        endcase
+        case (s_l2_transf_size)
+        2'h0:
+                begin
+                   if     (s_l2_addr[1:0] == 2'b00) l2_wdata_o = {24'h0, s_l2_data[7:0]        };
+                   else if(s_l2_addr[1:0] == 2'b01) l2_wdata_o = {16'h0, s_l2_data[7:0],   8'h0};
+                   else if(s_l2_addr[1:0] == 2'b10) l2_wdata_o = { 8'h0, s_l2_data[7:0],  16'h0};
+                   else                             l2_wdata_o = {       s_l2_data[7:0],  24'h0};
+                end
+        2'h1:
+                begin
+                   if     (s_l2_addr[1:0] == 2'b00) l2_wdata_o = {16'h0, s_l2_data[15:0]       };
+                   else if(s_l2_addr[1:0] == 2'b01) l2_wdata_o = { 8'h0, s_l2_data[15:0],  8'h0};
+                   else if(s_l2_addr[1:0] == 2'b10) l2_wdata_o = {       s_l2_data[15:0], 16'h0};
+                   else                             l2_wdata_o = s_is_na ? {24'h0, s_l2_data[15:8] } : {s_l2_data[7:0], 24'h0 };
+                end
+        2'h2: 
+                begin
+                   if     (s_l2_addr[1:0] == 2'b00) l2_wdata_o = s_l2_data[31:0];
+                   else if(s_l2_addr[1:0] == 2'b01) l2_wdata_o = s_is_na ? {24'h0, s_l2_data[31:24] } : {s_l2_data[23:0],  8'h0 };
+                   else if(s_l2_addr[1:0] == 2'b10) l2_wdata_o = s_is_na ? {16'h0, s_l2_data[31:16] } : {s_l2_data[15:0], 16'h0 };
+                   else                             l2_wdata_o = s_is_na ? { 8'h0, s_l2_data[31:8]  } : {s_l2_data[7:0] , 24'h0 };
+                end
+        default:                                    l2_wdata_o = 32'hDEADBEEF;  // Shouldn't be possible
+        endcase 
       end
     end
   endgenerate
