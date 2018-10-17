@@ -90,7 +90,6 @@ module udma_tx_channels
     logic       [LOG_N_CHANNELS-1:0] s_grant_log;
     logic        [N_CHANNELS_TX-1:0] s_ch_ready;
     logic       [N_LIN_CHANNELS-1:0] s_ch_en;
-    logic       [LOG_N_CHANNELS-1:0] s_resp;
     logic       [LOG_N_CHANNELS-1:0] r_resp;
     logic       [LOG_N_CHANNELS-1:0] r_resp_dly;
 
@@ -102,17 +101,13 @@ module udma_tx_channels
     logic                        s_send_req;
 
     logic                      [L2_AWIDTH_NOAL-1:0] s_addr;
-    logic                      [L2_AWIDTH_NOAL-1:0] s_l2_addr;
-    logic                      [DEST_WIDTH-1:0] s_l2_dest;
     logic [N_CHANNELS_TX-1:0]  [L2_AWIDTH_NOAL-1:0] s_curr_addr;
     logic                      [L2_AWIDTH_NOAL-1:0] r_in_addr;
 
     logic                  [1:0] s_size;
-    logic                  [1:0] s_trans_size;
     logic       [DATA_WIDTH-1:0] s_data;
     logic                  [1:0] r_size;
     logic       [DATA_WIDTH-1:0] r_data;
-    logic       [ALIGN_BITS-1:0] s_addr_lsb;
     logic       [ALIGN_BITS-1:0] r_addr;
 
     logic                  [1:0] s_in_size;
@@ -123,19 +118,37 @@ module udma_tx_channels
     logic         [INTFIFO_SIZE-1:0] s_fifoin;
     logic         [INTFIFO_SIZE-1:0] s_fifoout;
 
-    logic s_l2_req_o;
+    logic       [ALIGN_BITS-1:0] s_fifo_addr_lsb;
+    logic   [L2_AWIDTH_NOAL-1:0] s_fifo_l2_addr;
+    logic       [DEST_WIDTH-1:0] s_fifo_l2_dest;
+    logic                  [1:0] s_fifo_trans_size;
+    logic   [LOG_N_CHANNELS-1:0] s_fifo_resp;
+
+    logic [L2_AWIDTH_NOAL-ALIGN_BITS-1:0] s_l2_addr_na; //used for non aligned transfers
+
+    logic s_l2_req;
+    logic s_l2_gnt;
+
     logic s_stall;
     logic s_sample_indata;
+
+    logic s_is_na;
+    logic r_is_na;
+    logic s_detect_na;
+
+    enum logic {TX_IDLE,TX_NON_ALIGNED} r_tx_state,s_tx_state_next;
 
     assign lin_curr_addr_o = s_curr_addr;
     assign lin_en_o = s_ch_en;
     assign s_fifoin = {r_in_dest,s_grant_log,r_in_size,s_addr[L2_AWIDTH_NOAL-1:0]};
 
-    assign s_l2_addr    = s_fifoout[L2_AWIDTH_NOAL-1:0];
-    assign s_addr_lsb   = s_fifoout[ALIGN_BITS-1:0];
-    assign s_trans_size = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH-1:L2_AWIDTH_NOAL];
-    assign s_resp       = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH];
-    assign s_l2_dest    = s_fifoout[INTFIFO_SIZE-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS];
+    assign s_fifo_l2_addr    = s_fifoout[L2_AWIDTH_NOAL-1:0];
+    assign s_fifo_addr_lsb   = s_fifoout[ALIGN_BITS-1:0];
+    assign s_fifo_trans_size = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH-1:L2_AWIDTH_NOAL];
+    assign s_fifo_resp       = s_fifoout[L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH];
+    assign s_fifo_l2_dest    = s_fifoout[INTFIFO_SIZE-1:L2_AWIDTH_NOAL+DATASIZE_WIDTH+LOG_N_CHANNELS];
+
+    assign s_l2_addr_na = s_fifo_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS] + 1; //ask for following word
 
     assign s_req[N_LIN_CHANNELS-1:0] = lin_req_i & s_ch_en;
     assign s_req[N_CHANNELS_TX-1:N_LIN_CHANNELS] = ext_req_i;
@@ -144,15 +157,19 @@ module udma_tx_channels
 
     assign s_send_req = r_anygrant;
 
-    assign l2_req_o = s_l2_req_o & ~s_stall;
+    assign l2_req_o = s_l2_req & ~s_stall;
 
     assign lin_gnt_o = s_gnt[N_LIN_CHANNELS-1:0];
     assign ext_gnt_o = s_gnt[N_CHANNELS_TX-1:N_LIN_CHANNELS];
 
     always_comb 
     begin
-      l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-      case(s_l2_dest)
+      if(!s_is_na)
+        l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_fifo_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+      else
+        l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_l2_addr_na,{ALIGN_BITS{1'b0}}};
+
+      case(s_fifo_l2_dest)
         2'b00:
         begin
             l2_addr_o[31:24]  = 8'h1C;
@@ -169,7 +186,7 @@ module udma_tx_channels
         begin
             l2_addr_o[31:24]  = 8'h1C;
         end
-        endcase // s_l2_destination    
+        endcase // s_fifo_l2_destination    
     end
 
     udma_arbiter #(
@@ -193,8 +210,8 @@ module udma_tx_channels
         .elements_o(),
         .clr_i(1'b0),
         .data_o(s_fifoout),
-        .valid_o(s_l2_req_o),
-        .ready_i(l2_gnt_i),
+        .valid_o(s_l2_req),
+        .ready_i(s_l2_gnt),
         .valid_i(s_send_req),
         .data_i(s_fifoin),
         .ready_o(s_sample_indata)
@@ -330,17 +347,19 @@ module udma_tx_channels
         r_addr      <=  '0; 
         r_data      <=  '0;
         r_in_addr   <=  '0;
+        r_is_na     <=  '0;
       end else begin
-          r_valid     <= l2_rvalid_i;
+          r_valid     <= l2_rvalid_i & ~s_is_na;
           r_resp_dly  <= r_resp;
+          r_is_na     <= s_is_na;
 
           if (l2_rvalid_i)
             r_data <= s_data;
-          if (l2_req_o && l2_gnt_i)
+          if (s_l2_req && l2_gnt_i && !s_is_na)
           begin
-            r_resp     <= s_resp;
-            r_size     <= s_trans_size;
-            r_addr     <= s_addr_lsb;
+            r_resp     <= s_fifo_resp;
+            r_size     <= s_fifo_trans_size;
+            r_addr     <= s_fifo_addr_lsb;
           end
           
          if (s_sample_indata)
@@ -355,7 +374,45 @@ module udma_tx_channels
          end
       end
     end
-   
+
+    always_comb begin : proc_TX_SM
+      s_tx_state_next       = r_tx_state;
+      case(r_tx_state)
+        TX_IDLE:
+        begin
+          if(s_detect_na)
+          begin
+            s_l2_gnt = 1'b0;
+            if(l2_gnt_i)
+              s_tx_state_next = TX_NON_ALIGNED;
+          end
+          else
+            s_l2_gnt = l2_gnt_i;
+        end
+        TX_NON_ALIGNED:
+        begin
+          s_is_na = 1'b1;
+          s_l2_gnt = l2_gnt_i;
+          if(l2_gnt_i)
+            s_tx_state_next = TX_IDLE;
+        end
+      endcase
+    end
+    always_comb
+    begin
+      s_detect_na = 1'b0;
+      case (s_fifo_trans_size)
+      2'h1:
+            begin
+               if     (s_fifo_addr_lsb == 2'b11) s_detect_na = 1'b1;
+            end
+      2'h2:
+            begin
+               if     (s_fifo_addr_lsb[0] || s_fifo_addr_lsb[1]) s_detect_na = 1'b1;
+            end
+      endcase 
+    end
+
     generate
       if (L2_DATA_WIDTH == 64)
       begin
@@ -393,6 +450,7 @@ module udma_tx_channels
       begin
         always_comb
         begin
+          s_data = r_data;
           case (r_size)
           2'h0:
                 begin
@@ -403,17 +461,40 @@ module udma_tx_channels
                 end
           2'h1:
                 begin
-                   if(r_addr[1] == 1'b0)         s_data = {16'h0,l2_rdata_i[15:0]};
-                   else                          s_data = {16'h0,l2_rdata_i[31:16]};
+                    if(s_is_na)
+                                                  s_data = {24'h0,l2_rdata_i[31:24]};
+                    else if(r_is_na)
+                                                  s_data[15:8] = l2_rdata_i[7:0];
+                    else
+                    begin
+                      if     (r_addr[1:0] == 2'b00) s_data = {16'h0,l2_rdata_i[15:0]};
+                      else if(r_addr[1:0] == 2'b01) s_data = {16'h0,l2_rdata_i[23:8]};
+                      else                          s_data = {16'h0,l2_rdata_i[31:16]};
+                    end
                 end
           2'h2: 
                 begin
-                                                 s_data = l2_rdata_i[31:0];
+                    if(s_is_na)
+                    begin
+                        if     (r_addr[1:0] == 2'b01) s_data = {8'h0,l2_rdata_i[31:8]};
+                        else if(r_addr[1:0] == 2'b10) s_data = {16'h0,l2_rdata_i[31:16]};
+                        else                          s_data = {24'h0,l2_rdata_i[31:24]}; //(r_addr[1:0] == 2'b11)
+                    end
+                    else if(r_is_na)
+                    begin
+                        if     (r_addr[1:0] == 2'b01) s_data[31:24] = l2_rdata_i[7:0];
+                        else if(r_addr[1:0] == 2'b10) s_data[31:16] = l2_rdata_i[15:0];
+                        else                          s_data[31:8]  = l2_rdata_i[23:0]; //(r_addr[1:0] == 2'b11)
+                    end
+                    else
+                      s_data = l2_rdata_i;
                 end
           default:                               s_data = 32'hDEADBEEF;  // default to 32-bit access
           endcase 
         end
       end
     endgenerate
+
+
 
 endmodule
