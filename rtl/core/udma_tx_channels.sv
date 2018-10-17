@@ -348,7 +348,9 @@ module udma_tx_channels
         r_data      <=  '0;
         r_in_addr   <=  '0;
         r_is_na     <=  '0;
+        r_tx_state  <= TX_IDLE;
       end else begin
+          r_tx_state  <= s_tx_state_next;
           r_valid     <= l2_rvalid_i & ~s_is_na;
           r_resp_dly  <= r_resp;
           r_is_na     <= s_is_na;
@@ -377,6 +379,8 @@ module udma_tx_channels
 
     always_comb begin : proc_TX_SM
       s_tx_state_next       = r_tx_state;
+      s_l2_gnt = 1'b0;
+      s_is_na  = 1'b0;
       case(r_tx_state)
         TX_IDLE:
         begin
@@ -398,6 +402,7 @@ module udma_tx_channels
         end
       endcase
     end
+
     always_comb
     begin
       s_detect_na = 1'b0;
