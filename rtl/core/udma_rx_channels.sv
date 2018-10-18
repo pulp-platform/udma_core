@@ -503,7 +503,9 @@ module udma_rx_channels
          r_ext_stream_id <=  'h0;
          r_ext_sot    <=  'h0;
          r_ext_eot    <=  'h0;
+         r_rx_state   <=  RX_IDLE;
       end else begin
+        r_rx_state <= s_rx_state_next;
          if (s_sample_indata)
          begin
               r_data     <= s_data;
