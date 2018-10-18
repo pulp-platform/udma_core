@@ -41,6 +41,7 @@ module udma_ch_addrgen
     output logic  [L2_AWIDTH_NOAL-1 : 0] int_ch_curr_addr_o,
     output logic      [TRANS_SIZE-1 : 0] int_ch_bytes_left_o,
     output logic                         int_ch_pending_o,
+    output logic                 [1 : 0] int_ch_curr_bytes_o,
 
     input  logic                         int_ch_grant_i,
     output logic                         int_ch_en_o,
@@ -84,6 +85,39 @@ module udma_ch_addrgen
     assign int_ch_sot_o     = r_sot;
     assign int_ch_pending_o = r_pending_en;
 
+    assign int_ch_curr_addr_o  = r_addresses;
+    assign int_ch_bytes_left_o = r_counters;
+    assign int_stream_o    = r_stream;
+    assign int_stream_id_o = r_stream_id;
+
+    assign s_compare = (r_counters <= s_datasize_toadd);
+
+    always_comb
+    begin: proc_curr_bytes 
+      case(int_datasize_i)
+        2'b00:
+          int_ch_curr_bytes_o = 'h0;
+        2'b01:
+        begin
+          if(s_compare && (r_counters[1:0] == 2'h1))
+              int_ch_curr_bytes_o = 'h0;
+          else
+              int_ch_curr_bytes_o = 'h1;
+        end
+        2'b10:
+          if(s_compare && (r_counters[1:0] == 2'h1))
+              int_ch_curr_bytes_o = 'h0;
+          else if (s_compare && (r_counters[1:0] == 2'h2))
+              int_ch_curr_bytes_o = 'h1;
+          else if (s_compare && (r_counters[1:0] == 2'h3))
+              int_ch_curr_bytes_o = 'h2;
+          else
+              int_ch_curr_bytes_o = 'h3;
+        default:
+          int_ch_curr_bytes_o = 'h0;
+      endcase
+    end
+
     always_comb
     begin: mux_datasize
       case(int_datasize_i)
@@ -93,15 +127,10 @@ module udma_ch_addrgen
           s_datasize_toadd = 'h2;
         2'b10:
           s_datasize_toadd = 'h4;
-        default
+        default:
           s_datasize_toadd = '0;
       endcase
     end
-
-    assign int_ch_curr_addr_o  = r_addresses;
-    assign int_ch_bytes_left_o = r_counters;
-    assign int_stream_o    = r_stream;
-    assign int_stream_id_o = r_stream_id;
 
     always_comb 
     begin : proc_pending_en
@@ -187,9 +216,6 @@ module udma_ch_addrgen
         end
       end
     end    
-
-
-    assign s_compare = (r_counters <= s_datasize_toadd);
 
     always_ff @(posedge clk_i or negedge rstn_i) 
     begin : ff_addr

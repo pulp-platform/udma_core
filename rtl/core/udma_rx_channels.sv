@@ -94,8 +94,9 @@ module udma_rx_channels
 
     localparam DATASIZE_BITS       = 2;
     localparam SOT_EOT_BITS        = 2;
+    localparam CURR_BYTES_BITS     = 2;
 
-    localparam INTFIFO_L2_SIZE     = DATA_WIDTH + L2_AWIDTH_NOAL + DATASIZE_BITS + DEST_SIZE     +STREAM_ID_WIDTH + 1;
+    localparam INTFIFO_L2_SIZE     = DATA_WIDTH + L2_AWIDTH_NOAL + DATASIZE_BITS + DEST_SIZE     + CURR_BYTES_BITS + STREAM_ID_WIDTH + 1;
     localparam INTFIFO_FILTER_SIZE = DATA_WIDTH + DATASIZE_BITS  + DEST_SIZE     + SOT_EOT_BITS;
 
     integer i;
@@ -103,6 +104,7 @@ module udma_rx_channels
    // Internal signals
 
     logic [N_LIN_CHANNELS-1:0] [L2_AWIDTH_NOAL-1:0] s_curr_addr;
+    logic [N_LIN_CHANNELS-1:0]                [1:0] s_curr_bytes;
     logic [N_LIN_CHANNELS-1:0] [STREAM_ID_WIDTH-1:0] s_stream_id_cfg;
 
     logic                   [N_CHANNELS_RX-1:0] s_grant;
@@ -124,6 +126,9 @@ module udma_rx_channels
 
     logic                  [L2_AWIDTH_NOAL-1:0] s_addr;
 
+    logic                                 [1:0] s_bytes;
+    logic                                 [1:0] s_default_bytes;
+
     logic                  [L2_AWIDTH_NOAL-1:0] r_ext_addr;
     logic                                 [1:0] r_ext_stream;
     logic                  [STREAM_ID_WIDTH-1:0] r_ext_stream_id;
@@ -138,7 +143,9 @@ module udma_rx_channels
     logic                       [DEST_SIZE-1:0] s_l2_dest;
     logic                 [L2_DATA_WIDTH/8-1:0] s_l2_be;
     logic                  [L2_AWIDTH_NOAL-1:0] s_l2_addr;
+    logic       [L2_AWIDTH_NOAL-ALIGN_BITS-1:0] s_l2_addr_na;
     logic                 [STREAM_ID_WIDTH-1:0] s_l2_stream_id;
+    logic                                 [1:0] s_l2_bytes;
 
     logic                 [INTFIFO_L2_SIZE-1:0] s_fifoin;
     logic                 [INTFIFO_L2_SIZE-1:0] s_fifoout;
@@ -174,10 +181,6 @@ module udma_rx_channels
     logic                                       s_push_l2;
     logic                                       s_push_filter;
 
-    logic                                [31:0] s_l2_out_addr;
-    logic                                [31:0] s_apb_out_addr;
-    logic                                [31:0] s_clu_out_addr;
-
     logic                                       s_l2_req;
     logic                                       s_l2_gnt;
 
@@ -190,7 +193,7 @@ module udma_rx_channels
     assign lin_ch_curr_addr_o = s_curr_addr;
     assign lin_ch_en_o        = s_ch_en;
 
-    assign s_fifoin        = {s_stream_storel2,s_stream_id,r_dest,r_size,s_addr[L2_AWIDTH_NOAL-1:0],r_data};
+    assign s_fifoin        = {s_bytes,s_stream_storel2,s_stream_id,r_dest,r_size,s_addr[L2_AWIDTH_NOAL-1:0],r_data};
     assign s_fifoin_stream = {s_sot,s_eot,r_dest,r_size,r_data};
 
     assign s_l2_data        = s_fifoout[DATA_WIDTH-1:0];
@@ -199,6 +202,7 @@ module udma_rx_channels
     assign s_l2_dest        = s_fifoout[DATA_WIDTH+L2_AWIDTH_NOAL+DATASIZE_BITS+DEST_SIZE-1:L2_AWIDTH_NOAL+DATA_WIDTH+DATASIZE_BITS]; 
     assign s_l2_stream_id   = s_fifoout[DATA_WIDTH+L2_AWIDTH_NOAL+DATASIZE_BITS+DEST_SIZE+STREAM_ID_WIDTH-1:DATA_WIDTH+L2_AWIDTH_NOAL+DATASIZE_BITS+DEST_SIZE]; 
     assign s_l2_is_stream   = s_fifoout[DATA_WIDTH+L2_AWIDTH_NOAL+DATASIZE_BITS+DEST_SIZE+STREAM_ID_WIDTH];
+    assign s_l2_bytes       = s_fifoout[INTFIFO_L2_SIZE-1:INTFIFO_L2_SIZE-CURR_BYTES_BITS];
                                       
     assign s_req[N_LIN_CHANNELS-1:0]             = lin_ch_valid_i & s_ch_en;
     assign s_req[N_CHANNELS_RX-1:N_LIN_CHANNELS] = ext_ch_valid_i;
@@ -227,20 +231,26 @@ module udma_rx_channels
     assign l2_req_o = s_l2_req;
     assign s_l2_req_stream = s_l2_req & s_l2_is_stream; //used to spoof the transactions in the streaming unit and update the wr pointer for the L2 buffer
 
-    generate
-      if(TRANS_SIZE < 24)
-        assign s_l2_out_addr  = {  8'h1C,{(32-TRANS_SIZE-8){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
+    assign s_l2_addr_na = s_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS] + 1; //ask for following word
+
+    always_comb 
+    begin
+      if(!s_is_na)
+        l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_l2_addr[L2_AWIDTH_NOAL-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
       else
-        assign s_l2_out_addr  = {  8'h1C,s_l2_addr[23:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-      if(TRANS_SIZE < 20)
-        assign s_apb_out_addr  = { 12'h1A1,{(32-TRANS_SIZE-12){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-      else
-        assign s_apb_out_addr  = { 12'h1A1,s_l2_addr[19:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-      if(TRANS_SIZE < 24)
-        assign s_clu_out_addr  = {  8'h10,{(32-TRANS_SIZE-8){1'b0}},s_l2_addr[TRANS_SIZE-1:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-      else
-        assign s_clu_out_addr  = {  8'h10,s_l2_addr[23:ALIGN_BITS],{ALIGN_BITS{1'b0}}};
-    endgenerate
+        l2_addr_o  = {{(32-L2_AWIDTH_NOAL){1'b0}},s_l2_addr_na,{ALIGN_BITS{1'b0}}};
+
+      case(s_l2_dest)
+        2'b00:
+            l2_addr_o[31:24]  = 8'h1C;
+        2'b01:
+            l2_addr_o[31:20]  = 12'h1A1;
+        2'b10:
+            l2_addr_o[31:24]  = 8'h10;
+        default:
+            l2_addr_o[31:24]  = 8'h1C;
+        endcase // s_fifo_l2_destination    
+    end
 
     udma_arbiter #(
       .N(N_CHANNELS_RX),
@@ -307,6 +317,7 @@ module udma_rx_channels
           .int_datasize_i      ( r_size                     ),
           .int_not_stall_i     ( s_sample_indata            ),
           .int_ch_curr_addr_o  ( s_curr_addr[j]             ),
+          .int_ch_curr_bytes_o ( s_curr_bytes[j]            ),
           .int_ch_bytes_left_o ( lin_ch_bytes_left_o[j]     ),
           .int_ch_grant_i      ( r_grant[j]                 ),
           .int_ch_en_o         ( ),
@@ -361,19 +372,6 @@ module udma_rx_channels
       end
     endgenerate
 
-    always_comb 
-    begin
-      case(s_l2_dest)
-        'h0:
-          l2_addr_o = s_l2_out_addr;
-        'h1:
-          l2_addr_o = s_apb_out_addr;
-        'h2:
-          l2_addr_o = s_clu_out_addr;
-        default:
-          l2_addr_o = s_l2_out_addr;
-      endcase
-    end
 
     always_comb 
     begin
@@ -382,10 +380,25 @@ module udma_rx_channels
         if(r_grant[i])
           s_grant_log = i;    
     end
+    
+    always_comb 
+    begin: default_bytes
+        case(r_size)
+        2'b00:
+          s_default_bytes = 'h0;
+        2'b01:
+          s_default_bytes = 'h1;
+        2'b10:
+          s_default_bytes = 'h3;        
+        default : 
+          s_default_bytes = 'h0;
+        endcase
+    end
 
     always_comb 
     begin: inside_mux
       s_addr      =  'h0;
+      s_bytes     =  'h0;
       s_stream_id =  'h0;
       s_is_stream = 1'b0;
       s_stream_use_buff  = 1'b0;
@@ -396,6 +409,7 @@ module udma_rx_channels
         if(r_grant[i])
         begin
           s_addr      = s_curr_addr[i];
+          s_bytes     = s_curr_bytes[i];
           s_is_stream = s_stream_cfg[i][1];
           s_stream_use_buff  = s_stream_cfg[i][0];
           s_stream_id = s_stream_id_cfg[i];
@@ -408,6 +422,7 @@ module udma_rx_channels
         if(r_grant[N_LIN_CHANNELS+i])
         begin
           s_addr      = r_ext_addr;
+          s_bytes     = s_default_bytes;
           s_is_stream = r_ext_stream[1];
           s_stream_use_buff  = r_ext_stream[0];
           s_stream_id = r_ext_stream_id;
@@ -593,17 +608,51 @@ module udma_rx_channels
                 end
           2'h1:
                 begin
-                   if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0011;
-                   else if(s_l2_addr[1:0] == 2'b01) s_l2_be = 4'b0110;
-                   else if(s_l2_addr[1:0] == 2'b10) s_l2_be = 4'b1100;
-                   else                             s_l2_be = s_is_na ? 4'b0001 : 4'b1000;
+                    if(s_l2_bytes == 2'h0)
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0001;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = 4'b0010;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = 4'b0100;
+                        else                             s_l2_be = s_is_na ? 4'b0000 : 4'b1000;
+                    end
+                    else
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0011;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = 4'b0110;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = 4'b1100;
+                        else                             s_l2_be = s_is_na ? 4'b0001 : 4'b1000;
+                    end
                 end
           2'h2: 
                 begin
-                   if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b1111;
-                   else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0001 : 4'b1110;
-                   else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0011 : 4'b1100;
-                   else                             s_l2_be = s_is_na ? 4'b0111 : 4'b1000;
+                    if(s_l2_bytes == 2'h0)
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0001;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0000 : 4'b0010;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0000 : 4'b0100;
+                        else                             s_l2_be = s_is_na ? 4'b0000 : 4'b1000;
+                    end
+                    else if(s_l2_bytes == 2'h1)
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0011;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0000 : 4'b0110;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0000 : 4'b1100;
+                        else                             s_l2_be = s_is_na ? 4'b0001 : 4'b1000;
+                    end
+                    else if(s_l2_bytes == 2'h2)
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b0111;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0000 : 4'b1110;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0001 : 4'b1100;
+                        else                             s_l2_be = s_is_na ? 4'b0011 : 4'b1000;
+                    end
+                    else
+                    begin
+                        if     (s_l2_addr[1:0] == 2'b00) s_l2_be = 4'b1111;
+                        else if(s_l2_addr[1:0] == 2'b01) s_l2_be = s_is_na ? 4'b0001 : 4'b1110;
+                        else if(s_l2_addr[1:0] == 2'b10) s_l2_be = s_is_na ? 4'b0011 : 4'b1100;
+                        else                             s_l2_be = s_is_na ? 4'b0111 : 4'b1000;
+                    end
                 end
           default:                                  s_l2_be = 4'b0000; 
           endcase 
