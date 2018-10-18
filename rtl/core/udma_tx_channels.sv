@@ -240,6 +240,7 @@ module udma_tx_channels
           .int_ch_curr_addr_o(s_curr_addr[j]),
           .int_ch_bytes_left_o(lin_bytes_left_o[j]),
           .int_ch_grant_i(r_grant[j]),
+          .int_ch_curr_bytes_o(),
           .int_ch_en_o(),
           .int_ch_sot_o(),
           .int_ch_en_prev_o(s_ch_en[j]),
