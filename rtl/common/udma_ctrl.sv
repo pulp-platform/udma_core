@@ -215,7 +215,7 @@ module udma_ctrl
             r_bincu_threshold      <= 0;
             r_bincu_counter        <= 0;
             r_filter_mode          <= 0;
-            r_filter_start         <= 0;
+            r_filter_start          = 0;
         end
         else
         begin
