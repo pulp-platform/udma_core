@@ -50,25 +50,30 @@ module udma_stream_unit
      logic [L2_AWIDTH_NOAL-1:0] r_jump_dst;
      logic [L2_AWIDTH_NOAL-1:0] r_jump_src;
      logic [L2_AWIDTH_NOAL-1:0] s_datasize_toadd;
-     logic            [1:0] r_datasize;
+     logic                [1:0] r_datasize;
 
-     logic                  s_fifo_out_req  ;
-     logic                  s_fifo_out_gnt  ;
-     logic                  s_fifo_out_valid;
-     logic [DATA_WIDTH-1:0] s_fifo_out_data ;
-     logic                  s_fifo_out_ready;
-     logic [DATA_WIDTH-1:0] s_fifo_in_data  ;
-     logic                  s_fifo_in_valid ;
-     logic                  s_fifo_in_ready ;
+     logic                      s_fifo_out_req  ;
+     logic                      s_fifo_out_gnt  ;
+     logic                      s_fifo_out_valid;
+     logic     [DATA_WIDTH-1:0] s_fifo_out_data ;
+     logic                      s_fifo_out_ready;
+     logic     [DATA_WIDTH-1:0] s_fifo_in_data  ;
+     logic                      s_fifo_in_valid ;
+     logic                      s_fifo_in_ready ;
 
-     logic                  s_req;
-     logic                  s_rd_ptr_next;
-     logic                  r_do_jump;
-     logic                  s_sample_rd;
-     logic                  s_sample_wr;
-     logic                  s_sample_wr_start;
-     logic                  r_err;
-     logic                  s_stream_buf_en;
+     logic                [1:0] s_int_datasize;
+     logic [L2_AWIDTH_NOAL-1:0] s_wr_ptr_guess;
+     logic                      s_is_jump;
+
+
+     logic                      s_req;
+     logic                      s_rd_ptr_next;
+     logic                      r_do_jump;
+     logic                      s_sample_rd;
+     logic                      s_sample_wr;
+     logic                      s_sample_wr_start;
+     logic                      r_err;
+     logic                      s_stream_buf_en;
 
      enum logic [1:0] {ST_IDLE,ST_BUF_TRAN,ST_BUF_WAIT,ST_STREAM} s_state,r_state;
 

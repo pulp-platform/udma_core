@@ -131,7 +131,7 @@ module udma_rx_channels
 
     logic                  [L2_AWIDTH_NOAL-1:0] r_ext_addr;
     logic                                 [1:0] r_ext_stream;
-    logic                  [STREAM_ID_WIDTH-1:0] r_ext_stream_id;
+    logic                 [STREAM_ID_WIDTH-1:0] r_ext_stream_id;
     logic                                       r_ext_sot;
     logic                                       r_ext_eot;
 
@@ -160,15 +160,22 @@ module udma_rx_channels
     logic            [N_LIN_CHANNELS-1:0] [1:0] s_stream_cfg;
     logic                                       s_is_stream;
     logic                                       s_stream_use_buff;
-    logic                  [STREAM_ID_WIDTH-1:0] s_stream_id;
+    logic                 [STREAM_ID_WIDTH-1:0] s_stream_id;
 
     logic                       [N_STREAMS-1:0] s_stream_ready;
     logic                      [DATA_WIDTH-1:0] s_stream_data;
-    logic                  [STREAM_ID_WIDTH-1:0] s_stream_dest;
+    logic                 [STREAM_ID_WIDTH-1:0] s_stream_dest;
     logic                                 [1:0] s_stream_size;
     logic                                       s_stream_sot;
     logic                                       s_stream_eot;
     logic                                       s_stream_ready_demux;
+
+    logic                                       s_l2_is_stream;
+    logic                                       s_stream_direct;
+    logic                                       s_target_l2;
+    logic                                       s_target_stream;
+    logic                                       s_l2_req_stream;
+    logic                                       s_stream_valid;
 
     logic                                       s_stream_storel2;
 

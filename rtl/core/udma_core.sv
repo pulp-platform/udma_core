@@ -59,6 +59,9 @@ module udma_core
 
     output logic        [N_PERIPHS-1:0] periph_per_clk_o,
     output logic        [N_PERIPHS-1:0] periph_sys_clk_o,
+    output logic        [N_PERIPHS-1:0] cg_value_o,
+
+    output logic                        ext_hs_en_o,
 
     output logic                 [31:0] periph_data_to_o,
     output logic                  [4:0] periph_addr_o,
@@ -183,6 +186,8 @@ module udma_core
 
     logic               s_clk_core;
     logic               s_clk_core_en;
+
+    assign cg_value_o       = s_cg_value;
 
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
@@ -370,6 +375,7 @@ module udma_core
 
         .cg_value_o(s_cg_value),
         .cg_core_o(s_clk_core_en),
+        .ext_hs_en_o(ext_hs_en_o),
 
         .rst_value_o(), //TODO 
 

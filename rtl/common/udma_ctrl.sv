@@ -19,10 +19,12 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 // SPI Master Registers
-`define REG_CG      5'b00000 //BASEADDR+0x00 
-`define REG_CFG_EVT 5'b00001 //BASEADDR+0x04
-`define REG_RST     5'b00010 //BASEADDR+0x08
-`define REG_RFU     5'b00011 //BASEADDR+0x0C
+`define REG_CG          5'b00000 //BASEADDR+0x00 
+`define REG_CFG_EVT     5'b00001 //BASEADDR+0x04
+`define REG_RST         5'b00010 //BASEADDR+0x08
+`define REG_RFU         5'b00011 //BASEADDR+0x0C
+
+`define REG_EXT_HS_CTRL 5'b00100 //BASEADDR+0x10
 
 module udma_ctrl
   #(
@@ -45,6 +47,8 @@ module udma_ctrl
     output logic             [N_PERIPHS-1:0] cg_value_o,
     output logic                             cg_core_o,
 
+    output logic                             ext_hs_en_o,
+
     input  logic                             event_valid_i,
     input  logic                       [7:0] event_data_i,
     output logic                             event_ready_o,
@@ -52,9 +56,12 @@ module udma_ctrl
     output logic                       [3:0] event_o
 );
 
+    logic                       r_cg_core;
     logic [N_PERIPHS-1:0]       r_cg;
     logic [N_PERIPHS-1:0]       r_rst;
     logic           [3:0] [7:0] r_cmp_evt;
+
+    logic                       r_ext_hs_en;
 
 
     logic                [4:0] s_wr_addr;
@@ -71,8 +78,9 @@ module udma_ctrl
     assign s_rd_addr = (cfg_valid_i &  cfg_rwn_i) ? cfg_addr_i : 5'h0;
 
     assign cg_value_o  = r_cg;
-    assign cg_core_o   = |r_cg; //if any peripheral enabled then enable the top
+    assign cg_core_o   = |r_cg | r_cg_core; // if any peripheral enabled then enable the top - bypass reg for peripherals outside of udma
     assign rst_value_o = r_rst;
+    assign ext_hs_en_o = r_ext_hs_en;
 
     assign event_ready_o = 1'b1;
 
@@ -89,9 +97,11 @@ module udma_ctrl
     begin
         if(~rstn_i) 
         begin
-            r_cg      <= 'h0;
-            r_cmp_evt <= 'h0;
-            r_rst     <= 'h0;
+            r_cg        <= 'h0;
+            r_cg_core   <= 1'b0;
+            r_cmp_evt   <= 'h0;
+            r_rst       <= 'h0;
+            r_ext_hs_en <= 1'b0;
         end
         else
         begin
@@ -99,10 +109,12 @@ module udma_ctrl
             if (cfg_valid_i & ~cfg_rwn_i)
             begin
                 case (s_wr_addr)
-                `REG_CG:
-                    r_cg   <= cfg_data_i[N_PERIPHS-1:0];
+                `REG_CG: begin
+                    r_cg_core   <= cfg_data_i[31];
+                    r_cg        <= cfg_data_i[N_PERIPHS-1:0];
+                end
                 `REG_RST:
-                    r_rst  <= cfg_data_i[N_PERIPHS-1:0];
+                    r_rst       <= cfg_data_i[N_PERIPHS-1:0];
                 `REG_CFG_EVT:
                 begin
                     r_cmp_evt[0] <= cfg_data_i[7:0];
@@ -110,6 +122,9 @@ module udma_ctrl
                     r_cmp_evt[2] <= cfg_data_i[23:16];
                     r_cmp_evt[3] <= cfg_data_i[31:24];
                 end
+
+                `REG_EXT_HS_CTRL:
+                    r_ext_hs_en  <= cfg_data_i[0];
                 endcase
             end
         end
@@ -119,12 +134,16 @@ module udma_ctrl
     begin
         cfg_data_o = 32'h0;
         case (s_rd_addr)
-        `REG_CG:
+        `REG_CG: begin
+            cfg_data_o[31]            = r_cg_core;
             cfg_data_o[N_PERIPHS-1:0] = r_cg;
+        end
         `REG_RST:
             cfg_data_o[N_PERIPHS-1:0] = r_rst;
         `REG_CFG_EVT:
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
+        `REG_EXT_HS_CTRL:
+            cfg_data_o[0] = r_ext_hs_en;
         default:
             cfg_data_o = 'h0;
         endcase
