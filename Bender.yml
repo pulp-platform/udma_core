@@ -1,0 +1,35 @@
+package:
+  name: udma_core
+  authors: 
+    - "Antonio Pullini <pullinia@iis.ee.ethz.ch>"
+    - "Igor Loi <igor.loi@unibo.it>"
+    - "Florent Rotenberg <florent.rotenberg@greenwaves-technologies.com>"
+    - "Pasquale Davide Schiavone <pschiavo@iis.ee.ethz.ch>"
+
+dependencies:
+  tech_cells_generic: { git: "git@github.com:pulp-platform/tech_cells_generic.git", version: 0.1.6 }
+  common_cells: { git: "git@github.com:pulp-platform/common_cells.git", version: 1.13.1 }
+  axi_slice_dc: {git: "git@github.com:pulp-platform/axi_slice_dc.git", version: 1.1.3 } # deprecated, replaced by axi_cdc (in axi repo)
+
+sources:
+  - include_dirs: 
+      - rtl
+    files:
+      - rtl/core/udma_ch_addrgen.sv
+      - rtl/core/udma_arbiter.sv
+      - rtl/core/udma_core.sv
+      - rtl/core/udma_rx_channels.sv
+      - rtl/core/udma_tx_channels.sv
+      - rtl/core/udma_stream_unit.sv
+      - rtl/common/udma_ctrl.sv
+      - rtl/common/udma_apb_if.sv
+      - rtl/common/io_clk_gen.sv
+      - rtl/common/io_event_counter.sv
+      - rtl/common/io_generic_fifo.sv
+      - rtl/common/io_tx_fifo.sv
+      - rtl/common/io_tx_fifo_mark.sv
+      - rtl/common/io_tx_fifo_dc.sv
+      - rtl/common/io_shiftreg.sv
+      - rtl/common/udma_dc_fifo.sv
+      - rtl/common/udma_clkgen.sv
+      - rtl/common/udma_clk_div_cnt.sv
