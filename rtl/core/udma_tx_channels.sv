@@ -65,7 +65,7 @@ module udma_tx_channels
 
     localparam N_CHANNELS_TX  = N_LIN_CHANNELS+N_TOT_EXT_CHANNELS;
     localparam ALIGN_BITS     = $clog2(L2_DATA_WIDTH/8);
-    localparam LOG_N_CHANNELS = $clog2(N_CHANNELS_TX);
+    localparam LOG_N_CHANNELS = (N_CHANNELS_TX) > 1 ? $clog2(N_CHANNELS_TX) : 1;
     localparam INTFIFO_SIZE   = L2_AWIDTH_NOAL + LOG_N_CHANNELS + DATASIZE_WIDTH + DEST_WIDTH;//store addr_data and size and request
 
     integer i;
@@ -79,11 +79,11 @@ module udma_tx_channels
 
    ch_datasize_t [N_LIN_CHANNELS-1:0] s_lin_datasize   ;
    ch_dest_t [N_LIN_CHANNELS-1:0]     s_lin_destination;
-   logic [N_LIN_CHANNELS-1:0]         s_lin_req        ;
-   logic [N_LIN_CHANNELS-1:0]         s_lin_gnt        ;
+   //logic [N_LIN_CHANNELS-1:0]         s_lin_req        ;
+   //logic [N_LIN_CHANNELS-1:0]         s_lin_gnt        ;
    logic [N_LIN_CHANNELS-1:0]         s_lin_valid      ;
    ch_data_t [N_LIN_CHANNELS-1:0]     s_lin_data       ;
-   ch_addr_t [N_LIN_CHANNELS-1:0]     s_lin_curr_addr  ;
+   //ch_addr_t [N_LIN_CHANNELS-1:0]     s_lin_curr_addr  ;
 
    ch_addr_t     [N_TOT_EXT_CHANNELS-1:0] s_ext_addr       ;
    ch_datasize_t [N_TOT_EXT_CHANNELS-1:0] s_ext_datasize   ;
@@ -112,7 +112,7 @@ module udma_tx_channels
     logic [N_CHANNELS_TX-1:0]  [L2_AWIDTH_NOAL-1:0] s_curr_addr;
     logic                      [L2_AWIDTH_NOAL-1:0] r_in_addr;
 
-    logic                  [1:0] s_size;
+    //logic                  [1:0] s_size;
     logic       [DATA_WIDTH-1:0] s_data;
     logic                  [1:0] r_size;
     logic       [DATA_WIDTH-1:0] r_data;
@@ -173,7 +173,7 @@ module udma_tx_channels
 
     // we can't use the macro because of the and operation                            
     for (genvar i = 0; i < N_LIN_CHANNELS; i++) begin
-      assign s_req[i] = lin_ch[i].valid && s_ch_en[i];
+      assign s_req[i] = lin_ch[i].req && s_ch_en[i];
     end 
 
     `INTF_ARRAY_FIELD_TO_LOGIC_ARRAY_OFFSET(s_req,ext_ch_int,req,N_TOT_EXT_CHANNELS,N_LIN_CHANNELS)
@@ -248,8 +248,8 @@ module udma_tx_channels
 
     genvar j;
     generate
-      for (j=0;j<N_LIN_CHANNELS;j++)
-      begin
+      for (j=0;j<N_LIN_CHANNELS;j++) 
+      begin: tx_channels
         udma_ch_addrgen #(
           .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
           .TRANS_SIZE(TRANS_SIZE),
@@ -275,10 +275,10 @@ module udma_tx_channels
           .int_ch_en_prev_o   ( s_ch_en[j]              ),
           .int_ch_pending_o   ( lin_ch[j].pending       ),
           .int_ch_events_o    ( lin_ch[j].events        ),
-          .int_stream_o       (                         ),
-          .int_stream_id_o    (                         )
+          .int_stream_o       ( lin_ch[j].stream        ),
+          .int_stream_id_o    ( lin_ch[j].stream_id     )
         );
-      end
+      end: tx_channels
     endgenerate
 
     always_comb 

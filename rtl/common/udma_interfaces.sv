@@ -31,7 +31,7 @@ interface UDMA_LIN_CH (input clk_i);
 	logic         continuous  ;
 	logic         en          ;
 	logic         clr         ;
-	logic         data        ;
+	ch_data_t     data        ;
 	logic         valid       ;
 	logic         ready       ;
 	ch_datasize_t datasize    ;
@@ -50,24 +50,24 @@ interface UDMA_LIN_CH (input clk_i);
 
 	// this is used at the udma core side
 	modport rx_in (
-		input  valid, 
-		input  data, 
-		input  datasize, 
+		input  valid,    
+		input  data,     // data stream  
+		input  datasize, // word / half word / byte
 		input  destination, 
 		output ready, 
 		output events, 
-		output en, 
+		output en,       // transaction enable
 		output pending, 
 		output curr_addr, 
 		output bytes_left, 
 		input  startaddr, 
 		input  size, 
 		input  continuous, 
-		input  cen, 
-		input  clr, 
+		input  cen,     // peripheral enable
+		input  clr,     // software reset
 		input  stream, 
 		input  stream_id,
-		input  req, 
+		input  req,     
 		output gnt
 	);
 
@@ -115,6 +115,28 @@ interface UDMA_LIN_CH (input clk_i);
 		input  clr,
 		output stream, 
 		output stream_id
+
+	);
+
+	modport tx_in (
+
+		output req,
+		input  gnt,
+		input  valid,
+		input  data,
+		output ready,
+		output datasize,
+		output destination,
+		output events,
+		input  en,
+		input  pending,
+		input  curr_addr,
+		input  bytes_left,
+		output startaddr,
+		output size,
+		output continuous,
+		output cen,
+		input  clr
 
 	);
 
