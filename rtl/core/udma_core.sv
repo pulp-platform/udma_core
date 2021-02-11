@@ -134,7 +134,7 @@ module udma_core
     assign s_periph_data_from[N_REAL_PERIPHS-1:1] = periph_data_from_i;
    
 
-  UDMA_EXT_CH str_ext_ch[N_STREAMS-1:0](.clk_i(clk_i));
+  UDMA_EXT_CH str_ext_ch[N_STREAMS-1:0](.clk_i(s_clk_core));
 
   udma_tx_channels
   #(

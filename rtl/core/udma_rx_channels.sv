@@ -451,8 +451,8 @@ module udma_rx_channels
         if(s_grant[i])
         begin
           s_size = s_lin_datasize[i];
-          s_data = s_lin_datarx;
-          s_dest = s_lin_destination;
+          s_data = s_lin_datarx[i];
+          s_dest = s_lin_destination[i];
           s_lin_ready[i] = s_sample_indata;
         end
         else
