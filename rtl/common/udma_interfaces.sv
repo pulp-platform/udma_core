@@ -209,6 +209,21 @@ interface UDMA_EXT_CH (input clk_i);
 
 	);
 
+	modport tx_in	(
+
+		output  req,
+		output  addr,
+		output  datasize,
+		output  destination,
+		input   gnt,
+		input   valid,
+		input   data,
+		output  stream,
+		output  stream_id,
+		output  ready
+
+	);
+
 
 
 endinterface
