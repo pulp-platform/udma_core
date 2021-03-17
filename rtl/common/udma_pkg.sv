@@ -44,5 +44,16 @@ package udma_pkg;
 
 	// udma peripheral events
 	typedef logic  [3:0] udma_evt_t;
+
+	typedef struct packed {
+		ch_addr_t     addr;       
+		ch_datasize_t datasize;     
+		ch_data_t     data;       
+		logic         valid;      
+	} udma_stream_req_t;
+
+	typedef struct packed {
+		logic         ready;
+	}udma_stream_rsp_t;
 	
 endpackage
