@@ -251,11 +251,13 @@ module udma_rx_channels
 
       case(s_l2_dest)
         2'b00:
-            l2_addr_o[31:24]  = 8'h1C;
+            l2_addr_o[31:24]  = 8'h1C; // L2
         2'b01:
-            l2_addr_o[31:20]  = 12'h1A1;
+            l2_addr_o[31:20]  = 12'h1A1; // Peripherals
         2'b10:
-            l2_addr_o[31:24]  = 8'h10;
+            l2_addr_o[31:24] = 8'h10; // L1/Cluster memory region
+        2'b11:
+            l2_addr_o[31:24] = 8'h1E; // CUTIE internal memory
         default:
             l2_addr_o[31:24]  = 8'h1C;
         endcase // s_fifo_l2_destination    
