@@ -124,6 +124,9 @@ module udma_core
     logic               s_clk_core;
     logic               s_clk_core_en;
 
+    logic [7:0]           l2_dest_s; // custom L2 destination prefix (8 address
+                                     // MSBs), can be set in register file (address 0x4)
+
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
     assign periph_rwn_o     = s_periph_rwn;
@@ -172,7 +175,7 @@ module udma_core
     ) u_rx_channels (
       .clk_i               ( s_clk_core              ),
       .rstn_i              ( HRESETn                 ),
-    
+
       .l2_req_o            ( rx_l2_req_o             ),
       .l2_addr_o           ( rx_l2_addr_o            ),
       .l2_be_o             ( rx_l2_be_o              ),
@@ -182,8 +185,9 @@ module udma_core
       .str_ch              ( str_ch_tx               ),
       .str_ext_ch          ( str_ext_ch              ), // goes to tx channel
       .lin_ch              ( lin_ch_rx               ),
-      .ext_ch              ( ext_ch_rx               )
+      .ext_ch              ( ext_ch_rx               ),
 
+      .l2_dest_i           ( l2_dest_s               )
     );
 
     udma_apb_if #(
@@ -231,7 +235,8 @@ module udma_core
         .event_data_i (event_data_i),
         .event_ready_o(event_ready_o),
 
-        .event_o(event_o)
+        .event_o(event_o),
+        .l2_dest_o(l2_dest_s)
     );
 
     pulp_clock_gating i_clk_gate_sys_udma

@@ -23,6 +23,7 @@
 `define REG_CFG_EVT 5'b00001 //BASEADDR+0x04
 `define REG_RST     5'b00010 //BASEADDR+0x08
 `define REG_RFU     5'b00011 //BASEADDR+0x0C
+`define REG_L2_DEST 5'b00100 //BASEADDR+0x10
 
 module udma_ctrl
   #(
@@ -49,12 +50,15 @@ module udma_ctrl
     input  logic                       [7:0] event_data_i,
     output logic                             event_ready_o,
 
-    output logic                       [3:0] event_o
+    output logic                       [3:0] event_o,
+    output logic                       [7:0] l2_dest_o
 );
 
     logic [N_PERIPHS-1:0]       r_cg;
     logic [N_PERIPHS-1:0]       r_rst;
     logic           [3:0] [7:0] r_cmp_evt;
+
+    logic [7:0]                 r_l2_dest;
 
 
     logic                [4:0] s_wr_addr;
@@ -92,6 +96,7 @@ module udma_ctrl
             r_cg      <= 'h0;
             r_cmp_evt <= 'h0;
             r_rst     <= 'h0;
+            r_l2_dest <= 'h0;
         end
         else
         begin
@@ -110,6 +115,9 @@ module udma_ctrl
                     r_cmp_evt[2] <= cfg_data_i[23:16];
                     r_cmp_evt[3] <= cfg_data_i[31:24];
                 end
+                `REG_L2_DEST:
+                    r_l2_dest <= cfg_data_i[7:0];
+
                 endcase
             end
         end
@@ -125,6 +133,8 @@ module udma_ctrl
             cfg_data_o[N_PERIPHS-1:0] = r_rst;
         `REG_CFG_EVT:
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
+        `REG_L2_DEST:
+            cfg_data_o = {{24{1'b0}}, r_l2_dest};
         default:
             cfg_data_o = 'h0;
         endcase

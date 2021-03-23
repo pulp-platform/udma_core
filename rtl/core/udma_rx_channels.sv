@@ -56,8 +56,9 @@ module udma_rx_channels
     UDMA_EXT_CH.rx_out                     str_ch[N_STREAMS-1:0],
     UDMA_EXT_CH.tx_out                     str_ext_ch[N_STREAMS-1:0],
     UDMA_LIN_CH.rx_in                      lin_ch[N_LIN_CHANNELS-1:0],
-    UDMA_EXT_CH.rx_in                      ext_ch[N_EXT_CHANNELS-1:0]
+    UDMA_EXT_CH.rx_in                      ext_ch[N_EXT_CHANNELS-1:0],
 
+    input logic [7:0]                      l2_dest_i
     );
 
     localparam ALIGN_BITS          = $clog2(L2_DATA_WIDTH/8);
@@ -257,7 +258,7 @@ module udma_rx_channels
         2'b10:
             l2_addr_o[31:24] = 8'h10; // L1/Cluster memory region
         2'b11:
-            l2_addr_o[31:24] = 8'h1E; // CUTIE internal memory
+            l2_addr_o[31:24] = l2_dest_i; // custom prefix set in register file
         default:
             l2_addr_o[31:24]  = 8'h1C;
         endcase // s_fifo_l2_destination    
