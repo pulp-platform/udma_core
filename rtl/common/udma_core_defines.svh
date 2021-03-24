@@ -56,3 +56,25 @@
       	assign ext_in1[i].data     = ext_out[NIN0 + i].data;           \
       	assign ext_out[NIN0 + i].ready    = ext_in1[i].ready;          \
       end                                                           
+
+`define SPLIT_EXT_CHANNEL_ARRAYS(ext_out0,ext_out1,ext_int,NIN0,NIN1)  \
+      for(genvar i=0;i<NIN0;i++) begin                                 \
+        assign ext_out0[i].req         = ext_int[i].req           ;     \
+        assign ext_out0[i].datasize    = ext_int[i].datasize      ;     \
+        assign ext_out0[i].destination = ext_int[i].destination   ;     \
+        assign ext_out0[i].addr        = ext_int[i].addr          ;     \
+        assign ext_out0[i].ready       = ext_int[i].ready         ;     \
+        assign ext_int[i].gnt          = ext_out0[i].gnt          ;     \
+        assign ext_int[i].valid        = ext_out0[i].valid        ;     \
+        assign ext_int[i].data         = ext_out0[i].data         ;     \
+      end                                                               \
+      for(genvar i=0;i<NIN1;i++) begin                                  \
+        assign ext_out1[i].req          = ext_int[NIN0 + i].req        ; \
+        assign ext_out1[i].datasize     = ext_int[NIN0 + i].datasize   ; \
+        assign ext_out1[i].destination  = ext_int[NIN0 + i].destination; \
+        assign ext_out1[i].addr         = ext_int[NIN0 + i].addr       ; \
+        assign ext_out1[i].ready        = ext_int[NIN0 + i].ready      ; \
+        assign ext_int[NIN0 + i].gnt    = ext_out1[i].gnt              ; \
+        assign ext_int[NIN0 + i].valid  = ext_out1[i].valid            ; \
+        assign ext_int[NIN0 + i].data   = ext_out1[i].data             ; \
+      end  

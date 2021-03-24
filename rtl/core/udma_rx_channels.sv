@@ -54,7 +54,7 @@ module udma_rx_channels
     output logic    [L2_DATA_WIDTH-1 : 0]  l2_wdata_o,
 
     UDMA_EXT_CH.rx_out                     str_ch[N_STREAMS-1:0],
-    UDMA_EXT_CH.tx_out                     str_ext_ch[N_STREAMS-1:0],
+    UDMA_EXT_CH.tx_in                      str_ext_ch[N_STREAMS-1:0],
     UDMA_LIN_CH.rx_in                      lin_ch[N_LIN_CHANNELS-1:0],
     UDMA_EXT_CH.rx_in                      ext_ch[N_EXT_CHANNELS-1:0],
 
