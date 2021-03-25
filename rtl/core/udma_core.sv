@@ -147,6 +147,7 @@ module udma_core
       .N_STREAMS(N_STREAMS),
       .N_LIN_CHANNELS(N_TX_LIN_CHANNELS),
       .N_EXT_CHANNELS(N_TX_EXT_CHANNELS),
+      .STREAM_ID_WIDTH(STREAM_ID_WIDTH),
       .TRANS_SIZE(TRANS_SIZE)
     ) u_tx_channels (
       .clk_i                ( s_clk_core          ),

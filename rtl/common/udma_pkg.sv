@@ -26,7 +26,7 @@ package udma_pkg;
 	localparam TRANS_SIZE       = 20;  //max uDMA transaction size of 1MB
 	localparam L2_AWIDTH_NOAL   = L2_ADDR_WIDTH + 2;
 	localparam DEST_SIZE        = 2;
-	localparam STREAM_ID_WIDTH  = 1;
+	localparam STREAM_ID_WIDTH  = 4;
 
 	//linear channel parametric types tx related
  	typedef logic [    TRANS_SIZE-1 : 0] ch_transize_t;
