@@ -71,6 +71,7 @@ module udma_ctrl
     logic s_clr_pending;
     logic r_pending;
 
+    assign l2_dest_o = r_l2_dest;
     enum logic [1:0] { ST_IDLE, ST_SAMPLE, ST_BUSY} r_state,s_state;
 
     assign s_wr_addr = (cfg_valid_i & ~cfg_rwn_i) ? cfg_addr_i : 5'h0;

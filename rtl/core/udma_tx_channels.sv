@@ -73,7 +73,7 @@ module udma_tx_channels
     UDMA_EXT_CH ext_ch_int[N_TOT_EXT_CHANNELS-1:0](.clk_i(clk_i));
 
     // we need to split str_ext_ch and ext_ch into ext_int_ch
-    `SPLIT_EXT_CHANNEL_ARRAYS(str_ext_ch,ext_ch,ext_ch_int,N_STREAMS,N_EXT_CHANNELS)
+    `MERGE_EXT_CHANNEL_ARRAYS(str_ext_ch,ext_ch,ext_ch_int,N_STREAMS,N_EXT_CHANNELS)
    
    // Internal signals
 

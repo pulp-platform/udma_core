@@ -136,7 +136,7 @@ interface UDMA_LIN_CH (input clk_i);
 		output size,
 		output continuous,
 		output cen,
-		input  clr
+		output clr
 
 	);
 
