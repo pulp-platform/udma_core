@@ -346,7 +346,7 @@ module udma_rx_channels
     genvar k;
     generate
       for (k=0;k<N_STREAMS;k++)
-      begin
+      begin: stream_unit
         udma_stream_unit #(
           .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
           .STREAM_ID_WIDTH(STREAM_ID_WIDTH),
@@ -381,7 +381,9 @@ module udma_rx_channels
           .spoof_req_i           ( s_l2_req_stream          ),
           .spoof_gnt_i           ( s_l2_gnt                 )
         );
-      end
+      assign str_ext_ch[k].destination = '0; //clean lint error
+      end: stream_unit
+
     endgenerate
 
 
