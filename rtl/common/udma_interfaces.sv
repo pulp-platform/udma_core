@@ -127,7 +127,7 @@ interface UDMA_LIN_CH (input clk_i);
 		output ready,
 		output datasize,
 		output destination,
-		output events,
+		input events,
 		input  en,
 		input  pending,
 		input  curr_addr,
