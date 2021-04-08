@@ -92,10 +92,10 @@ module udma_core
 
     UDMA_EXT_CH.rx_in                   ext_ch_rx[N_RX_EXT_CHANNELS-1:0],
     UDMA_EXT_CH.tx_out                  ext_ch_tx[N_TX_EXT_CHANNELS-1:0]
-        
     );
 
-    localparam N_REAL_PERIPHS         = N_PERIPHS + 1;
+  localparam int unsigned               N_REAL_PERIPHS = N_PERIPHS + 1;
+  localparam int unsigned               ADDR_PREFIX_WIDTH = 32-L2_AWIDTH_NOAL;
 
     logic [N_STREAMS-1:0]                             s_tx_ch_req;
     logic [N_STREAMS-1:0]      [L2_AWIDTH_NOAL-1 : 0] s_tx_ch_addr;
@@ -124,7 +124,7 @@ module udma_core
     logic               s_clk_core;
     logic               s_clk_core_en;
 
-    logic [7:0]           l2_dest_s; // custom L2 destination prefix (8 address
+    logic [ADDR_PREFIX_WIDTH-1:0]           l2_dest_s; // custom L2 destination prefix (8 address
                                      // MSBs), can be set in register file (address 0x4)
 
     assign periph_data_to_o = s_periph_data_to;

@@ -29,36 +29,38 @@ module udma_ctrl
   #(
     parameter L2_AWIDTH_NOAL = 15,
     parameter TRANS_SIZE     = 15,
-    parameter N_PERIPHS      = 6 
+    parameter N_PERIPHS      = 6
     )
    (
-	input  logic 	                         clk_i,
-	input  logic   	                         rstn_i,
+	  input  logic         	                          clk_i,
+	  input  logic          	                        rstn_i,
 
-	input  logic                      [31:0] cfg_data_i,
-	input  logic                       [4:0] cfg_addr_i,
-	input  logic                             cfg_valid_i,
-	input  logic                             cfg_rwn_i,
-    output logic                      [31:0] cfg_data_o,
-	output logic                             cfg_ready_o,
+	  input  logic                             [31:0] cfg_data_i,
+	  input  logic                              [4:0] cfg_addr_i,
+	  input  logic                                    cfg_valid_i,
+	  input  logic                                    cfg_rwn_i,
+    output logic                             [31:0] cfg_data_o,
+	  output logic                                    cfg_ready_o,
 
-    output logic             [N_PERIPHS-1:0] rst_value_o,
-    output logic             [N_PERIPHS-1:0] cg_value_o,
-    output logic                             cg_core_o,
+    output logic                    [N_PERIPHS-1:0] rst_value_o,
+    output logic                    [N_PERIPHS-1:0] cg_value_o,
+    output logic                                    cg_core_o,
 
-    input  logic                             event_valid_i,
-    input  logic                       [7:0] event_data_i,
-    output logic                             event_ready_o,
+    input  logic                                    event_valid_i,
+    input  logic                              [7:0] event_data_i,
+    output logic                                    event_ready_o,
 
-    output logic                       [3:0] event_o,
-    output logic                       [7:0] l2_dest_o
+    output logic                              [3:0] event_o,
+    output logic            [32-L2_AWIDTH_NOAL-1:0] l2_dest_o
 );
+
+    localparam int unsigned                  ADDR_PREFIX_WIDTH = 32 - L2_AWIDTH_NOAL;
 
     logic [N_PERIPHS-1:0]       r_cg;
     logic [N_PERIPHS-1:0]       r_rst;
     logic           [3:0] [7:0] r_cmp_evt;
 
-    logic [7:0]                 r_l2_dest;
+    logic [ADDR_PREFIX_WIDTH-1:0] r_l2_dest;
 
 
     logic                [4:0] s_wr_addr;
@@ -116,7 +118,7 @@ module udma_ctrl
                     r_cmp_evt[3] <= cfg_data_i[31:24];
                 end
                 `REG_L2_DEST:
-                    r_l2_dest <= cfg_data_i[7:0];
+                    r_l2_dest <= cfg_data_i[ADDR_PREFIX_WIDTH-1:0];
 
                 endcase
             end
@@ -134,7 +136,7 @@ module udma_ctrl
         `REG_CFG_EVT:
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
         `REG_L2_DEST:
-            cfg_data_o = {{24{1'b0}}, r_l2_dest};
+            cfg_data_o = {{32-ADDR_PREFIX_WIDTH{1'b0}}, r_l2_dest};
         default:
             cfg_data_o = 'h0;
         endcase
