@@ -7,9 +7,8 @@ package:
     - "Pasquale Davide Schiavone <pschiavo@iis.ee.ethz.ch>"
 
 dependencies:
-  tech_cells_generic: { git: "git@github.com:pulp-platform/tech_cells_generic.git", version: 0.2.2 } # requires deprecated pulp_clock_gating_async
-  common_cells: { git: "git@github.com:pulp-platform/common_cells.git", version: 1.13.1 }
-  axi_slice_dc: {git: "git@github.com:pulp-platform/axi_slice_dc.git", version: 1.1.3 } # deprecated, replaced by axi_cdc (in axi repo)
+  tech_cells_generic: { git: "git@github.com:pulp-platform/tech_cells_generic.git", version: 0.2.4 }
+  common_cells: { git: "git@github.com:pulp-platform/common_cells.git", version: 1.21.0 }
 
 sources:
   - include_dirs: 
