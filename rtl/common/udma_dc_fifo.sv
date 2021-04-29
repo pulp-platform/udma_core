@@ -43,12 +43,12 @@ module udma_dc_fifo #(
     .SYNC_STAGES(2)
   ) i_cdc_fifo (
     .src_clk_i,
-    .src_rstn_i,
+    .src_rst_ni(src_rstn_i),
     .src_data_i,
     .src_valid_i,
     .src_ready_o,
     .dst_clk_i,
-    .dst_rstn_i,
+    .dst_rst_ni(dst_rstn_i),
     .dst_data_o,
     .dst_valid_o,
     .dst_ready_i
