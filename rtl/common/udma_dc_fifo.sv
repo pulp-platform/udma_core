@@ -34,33 +34,23 @@ module udma_dc_fifo #(
     input  logic                  dst_ready_i
     );
 
-  logic [DATA_WIDTH-1:0] data_async;
-  logic [BUFFER_DEPTH-1:0] write_token;
-  logic [BUFFER_DEPTH-1:0] read_pointer;
+  if (BUFFER_DEPTH != 2**$clog2(BUFFER_DEPTH))
+    $warning("Instantiating cdc fifo with buffer depth of %d instead of %d. Only powers of two are supported.", 2**$clog2(BUFFER_DEPTH), BUFFER_DEPTH);
 
- dc_token_ring_fifo_din #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .BUFFER_DEPTH(BUFFER_DEPTH)
-    ) u_din (
-    .clk(src_clk_i),
-    .rstn(src_rstn_i),
-    .data(src_data_i),
-    .valid(src_valid_i),
-    .ready(src_ready_o),
-    .write_token(write_token),
-    .read_pointer(read_pointer),
-    .data_async(data_async));
-
- dc_token_ring_fifo_dout #(
-    .DATA_WIDTH(DATA_WIDTH),
-    .BUFFER_DEPTH(BUFFER_DEPTH)
-    ) u_dout (.clk(dst_clk_i),
-    .rstn(dst_rstn_i),
-    .data(dst_data_o),
-    .valid(dst_valid_o),
-    .ready(dst_ready_i),
-    .write_token(write_token),
-    .read_pointer(read_pointer),
-    .data_async(data_async));
-
+  cdc_fifo_gray #(
+    .WIDTH(DATA_WIDTH),
+    .LOG_DEPTH($clog2(BUFFER_DEPTH)),
+    .SYNC_STAGES(2)
+  ) i_cdc_fifo (
+    .src_clk_i,
+    .src_rst_ni(src_rstn_i),
+    .src_data_i,
+    .src_valid_i,
+    .src_ready_o,
+    .dst_clk_i,
+    .dst_rst_ni(dst_rstn_i),
+    .dst_data_o,
+    .dst_valid_o,
+    .dst_ready_i
+  );
 endmodule
