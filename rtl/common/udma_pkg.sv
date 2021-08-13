@@ -59,7 +59,7 @@ package udma_pkg;
 	// cfg request
 	typedef struct packed {
 		logic [31:0] data;
-		logic [4:0] addr;
+		logic [31:0] addr;
 		logic valid;
 		logic rwn;
 	} cfg_req_t;
