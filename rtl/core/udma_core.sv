@@ -124,8 +124,16 @@ module udma_core
     logic               s_clk_core;
     logic               s_clk_core_en;
 
-    logic [ADDR_PREFIX_WIDTH-1:0]           l2_dest_s; // custom L2 destination prefix (8 address
-                                     // MSBs), can be set in register file (address 0x4)
+    logic [ADDR_PREFIX_WIDTH-1:0]           l2_dest_s; // custom L2 destination
+                                                       // prefix (8 address
+                                                       // MSBs), can be set in
+                                                       // register file (address
+                                                       // 0x10)
+
+    logic [ADDR_PREFIX_WIDTH-1:0]             l2_src_s; // custom L2 src prefix
+                                                        // (8 address MSBs), can
+                                                        // be set in register
+                                                        // file (address 0x14)
 
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
@@ -160,7 +168,9 @@ module udma_core
       .l2_rvalid_i          ( tx_l2_rvalid_i      ),
       .str_ext_ch           ( str_ext_ch          ),
       .lin_ch               ( lin_ch_tx           ), //memory to peripherals (lin channels) 
-      .ext_ch               ( ext_ch_tx           )  //memory to peripherals (ext channels)
+      .ext_ch               ( ext_ch_tx           ),  //memory to peripherals
+                                                      //(ext channels)
+      .l2_src_i             ( l2_src_s            )
     );
 
   udma_rx_channels
@@ -237,7 +247,8 @@ module udma_core
         .event_ready_o(event_ready_o),
 
         .event_o(event_o),
-        .l2_dest_o(l2_dest_s)
+        .l2_dest_o(l2_dest_s),
+        .l2_src_o(l2_src_s)
     );
 
     pulp_clock_gating i_clk_gate_sys_udma

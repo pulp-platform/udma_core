@@ -56,8 +56,9 @@ module udma_tx_channels
 
     UDMA_EXT_CH.tx_out                     str_ext_ch[N_STREAMS-1:0],
     UDMA_EXT_CH.tx_out                     ext_ch[N_EXT_CHANNELS-1:0],
-    UDMA_LIN_CH.tx_out                     lin_ch[N_LIN_CHANNELS-1:0]
+    UDMA_LIN_CH.tx_out                     lin_ch[N_LIN_CHANNELS-1:0],
 
+    input logic [32-L2_AWIDTH_NOAL-1:0]    l2_src_i
     );
 
     localparam  DATASIZE_WIDTH = 2;
@@ -211,6 +212,10 @@ module udma_tx_channels
         2'b10:
         begin
             l2_addr_o[31:24]  = 8'h10;
+        end
+        2'b11:
+        begin
+            l2_addr_o[31:L2_AWIDTH_NOAL] = l2_src_i; // custom prefix set in register file
         end
         default:
         begin

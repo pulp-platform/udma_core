@@ -24,6 +24,7 @@
 `define REG_RST     5'b00010 //BASEADDR+0x08
 `define REG_RFU     5'b00011 //BASEADDR+0x0C
 `define REG_L2_DEST 5'b00100 //BASEADDR+0x10
+`define REG_L2_SRC  5'b00101 //BASEADDR+0x14
 
 module udma_ctrl
   #(
@@ -51,7 +52,8 @@ module udma_ctrl
     output logic                                    event_ready_o,
 
     output logic                              [3:0] event_o,
-    output logic            [32-L2_AWIDTH_NOAL-1:0] l2_dest_o
+    output logic            [32-L2_AWIDTH_NOAL-1:0] l2_dest_o,
+    output logic            [32-L2_AWIDTH_NOAL-1:0] l2_src_o
 );
 
     localparam int unsigned                  ADDR_PREFIX_WIDTH = 32 - L2_AWIDTH_NOAL;
@@ -61,6 +63,7 @@ module udma_ctrl
     logic           [3:0] [7:0] r_cmp_evt;
 
     logic [ADDR_PREFIX_WIDTH-1:0] r_l2_dest;
+    logic [ADDR_PREFIX_WIDTH-1:0] r_l2_src;
 
 
     logic                [4:0] s_wr_addr;
@@ -72,6 +75,7 @@ module udma_ctrl
     logic r_pending;
 
     assign l2_dest_o = r_l2_dest;
+    assign l2_src_o = r_l2_src;
     enum logic [1:0] { ST_IDLE, ST_SAMPLE, ST_BUSY} r_state,s_state;
 
     assign s_wr_addr = (cfg_valid_i & ~cfg_rwn_i) ? cfg_addr_i : 5'h0;
@@ -100,6 +104,7 @@ module udma_ctrl
             r_cmp_evt <= 'h0;
             r_rst     <= 'h0;
             r_l2_dest <= 'h0;
+            r_l2_src  <= 'h0;
         end
         else
         begin
@@ -120,7 +125,8 @@ module udma_ctrl
                 end
                 `REG_L2_DEST:
                     r_l2_dest <= cfg_data_i[ADDR_PREFIX_WIDTH-1:0];
-
+                `REG_L2_SRC:
+                    r_l2_src  <= cfg_data_i[ADDR_PREFIX_WIDTH-1:0];
                 endcase
             end
         end
@@ -138,6 +144,8 @@ module udma_ctrl
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
         `REG_L2_DEST:
             cfg_data_o = {{32-ADDR_PREFIX_WIDTH{1'b0}}, r_l2_dest};
+        `REG_L2_SRC:
+            cfg_data_o = {{32-ADDR_PREFIX_WIDTH{1'b0}}, r_l2_src};
         default:
             cfg_data_o = 'h0;
         endcase
