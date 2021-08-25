@@ -69,8 +69,6 @@ module udma_tx_channels
     localparam LOG_N_CHANNELS = (N_CHANNELS_TX) > 1 ? $clog2(N_CHANNELS_TX) : 1;
     localparam INTFIFO_SIZE   = L2_AWIDTH_NOAL + LOG_N_CHANNELS + DATASIZE_WIDTH + DEST_WIDTH;//store addr_data and size and request
 
-    integer i;
-
     UDMA_EXT_CH ext_ch_int[N_TOT_EXT_CHANNELS-1:0](.clk_i(clk_i));
 
     // we need to split str_ext_ch and ext_ch into ext_int_ch

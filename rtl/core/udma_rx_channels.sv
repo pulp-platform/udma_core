@@ -72,8 +72,6 @@ module udma_rx_channels
     localparam INTFIFO_L2_SIZE     = DATA_WIDTH + L2_AWIDTH_NOAL + DATASIZE_BITS + DEST_SIZE     + CURR_BYTES_BITS + STREAM_ID_WIDTH + 1;
     localparam INTFIFO_FILTER_SIZE = DATA_WIDTH + DATASIZE_BITS  + DEST_SIZE     + SOT_EOT_BITS;
 
-    integer i;
-   
     //Internal signals
     ch_addr_t         [N_LIN_CHANNELS-1:0] s_lin_curr_addr;
     ch_byterel_addr_t [N_LIN_CHANNELS-1:0] s_lin_curr_bytes;
