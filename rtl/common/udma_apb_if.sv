@@ -44,14 +44,14 @@ module udma_apb_if
 
 );
 
-    logic [5:0] s_periph_sel;
+    logic [$clog2(N_PERIPHS)-1:0] s_periph_sel;
     logic       s_periph_valid;
 
     assign periph_addr_o  = PADDR[6:2];
     assign periph_rwn_o   = ~PWRITE;
     assign periph_data_o  = PWDATA;
 
-    assign s_periph_sel   = PADDR[12:7];
+    assign s_periph_sel   = PADDR[$clog2(N_PERIPHS)+7-1:7];
     assign s_periph_valid = PSEL & PENABLE;
 
     assign PSLVERR = 1'b0;
