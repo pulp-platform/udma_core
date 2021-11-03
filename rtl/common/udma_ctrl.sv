@@ -100,9 +100,9 @@ module udma_ctrl
             begin
                 case (s_wr_addr)
                 `REG_CG:
-                    r_cg   <= cfg_data_i[N_PERIPHS-1:0];
+                    r_cg   <= cfg_data_i[31:0];
                 `REG_RST:
-                    r_rst  <= cfg_data_i[N_PERIPHS-1:0];
+                    r_rst  <= cfg_data_i[31:0];
                 `REG_CFG_EVT:
                 begin
                     r_cmp_evt[0] <= cfg_data_i[7:0];
@@ -120,9 +120,9 @@ module udma_ctrl
         cfg_data_o = 32'h0;
         case (s_rd_addr)
         `REG_CG:
-            cfg_data_o[N_PERIPHS-1:0] = r_cg;
+            cfg_data_o[31:0] = r_cg;
         `REG_RST:
-            cfg_data_o[N_PERIPHS-1:0] = r_rst;
+            cfg_data_o[31:0] = r_rst;
         `REG_CFG_EVT:
             cfg_data_o = {r_cmp_evt[3],r_cmp_evt[2],r_cmp_evt[1],r_cmp_evt[0]};
         default:
