@@ -51,7 +51,9 @@ module udma_apb_if
     assign periph_rwn_o   = ~PWRITE;
     assign periph_data_o  = PWDATA;
 
-    assign s_periph_sel   = PADDR[$clog2(N_PERIPHS)+7-1:7];
+    //assign s_periph_sel   = PADDR[$clog2(N_PERIPHS)+7-1:7];
+
+    assign s_periph_sel   = PADDR[$clog2(N_PERIPHS)+12-1:12]; //4K mapping
     assign s_periph_valid = PSEL & PENABLE;
 
     assign PSLVERR = 1'b0;
