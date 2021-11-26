@@ -44,13 +44,16 @@ module udma_stream_unit
      logic          s_trans_wr;
      logic          s_trans_rd;
      logic          s_stream_sel;
+     logic [1:0]    s_int_datasize;
 
      logic [L2_AWIDTH_NOAL-1:0] r_wr_ptr;
      logic [L2_AWIDTH_NOAL-1:0] r_rd_ptr; 
      logic [L2_AWIDTH_NOAL-1:0] r_jump_dst;
      logic [L2_AWIDTH_NOAL-1:0] r_jump_src;
      logic [L2_AWIDTH_NOAL-1:0] s_datasize_toadd;
+     logic [L2_AWIDTH_NOAL-1:0] s_wr_ptr_guess;
      logic            [1:0] r_datasize;
+     logic                  s_is_jump;
 
      logic                  s_fifo_out_req  ;
      logic                  s_fifo_out_gnt  ;
