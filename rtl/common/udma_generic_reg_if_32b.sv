@@ -23,11 +23,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // register map
-`define REG_RX_SADDR     5'b00000 //BASEADDR+0x00 
+`define REG_RX_SADDR     5'b00000 //BASEADDR+0x00
 `define REG_RX_SIZE      5'b00001 //BASEADDR+0x04
-`define REG_RX_CFG       5'b00010 //BASEADDR+0x08  
+`define REG_RX_CFG       5'b00010 //BASEADDR+0x08
 
-module udma_generic_reg_if #(
+module udma_generic_reg_if_32b #(
   parameter L2_AWIDTH_NOAL  = 12,
   parameter UDMA_TRANS_SIZE = 16,
   parameter TRANS_SIZE      = 16
@@ -56,7 +56,7 @@ module udma_generic_reg_if #(
 );
 
   logic [L2_AWIDTH_NOAL-1:0] r_rx_startaddr;
-  logic     [TRANS_SIZE-1:0] r_rx_size;
+  logic     [TRANS_SIZE-3:0] r_rx_size;
   logic                      r_rx_continuous;
   logic                      r_rx_en;
   logic                      r_rx_clr;
@@ -73,7 +73,8 @@ module udma_generic_reg_if #(
   assign cfg_rx_en_o         = r_rx_en;
   assign cfg_rx_clr_o        = r_rx_clr;
 
-  assign cfg_rx_size_o[TRANS_SIZE-1:0] = r_rx_size;
+  assign cfg_rx_size_o[TRANS_SIZE-1:2] = r_rx_size;
+  assign cfg_rx_size_o           [1:0] = 2'b00;
   
   if (UDMA_TRANS_SIZE > TRANS_SIZE)
     assign cfg_rx_size_o[UDMA_TRANS_SIZE-1:TRANS_SIZE] = '0;
@@ -95,7 +96,7 @@ module udma_generic_reg_if #(
           `REG_RX_SADDR:
             r_rx_startaddr   <= cfg_data_i[L2_AWIDTH_NOAL-1:0];
           `REG_RX_SIZE:
-            r_rx_size        <= cfg_data_i[TRANS_SIZE-1:0];
+            r_rx_size        <= cfg_data_i[TRANS_SIZE-1:2];
           `REG_RX_CFG: begin
             r_rx_clr          = cfg_data_i[5];
             r_rx_en           = cfg_data_i[4];
