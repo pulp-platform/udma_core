@@ -77,6 +77,8 @@ module udma_clkgen
         .clk_o           ( s_clk_out_div   )
     );
 
+`define PULP_DFT
+
 `ifndef PULP_FPGA_EMUL
    pulp_clock_mux2 clk_mux_i 
      (
