@@ -82,20 +82,10 @@ module udma_clkgen
      (
       .clk0_i    ( s_clk_out_div  ),
       .clk1_i    ( clk_i          ),
-      .clk_sel_i ( r_clockout_mux ),
+      .clk_sel_i ( r_clockout_mux  | dft_test_mode_i ),
       .clk_o     ( s_clk_out      )
       );
- `ifdef PULP_DFT
-   pulp_clock_mux2 clk_mux_dft_i 
-     (
-      .clk0_i    ( s_clk_out       ),
-      .clk1_i    ( clk_i           ),
-      .clk_sel_i ( dft_test_mode_i ),
-      .clk_o     ( s_clk_out_dft   )
-      );
- `else
    assign s_clk_out_dft = s_clk_out;
- `endif
 `else
     assign s_clk_out = ~r_clockout_mux ? s_clk_out_div : clk_i;
     assign s_clk_out_dft = s_clk_out;
