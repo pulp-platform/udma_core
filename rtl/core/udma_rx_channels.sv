@@ -175,6 +175,13 @@ module udma_rx_channels
     logic                                  s_is_na;
     logic                                  s_detect_na;
 
+    logic                                       s_l2_is_stream;
+    logic                                       s_stream_direct;
+    logic                                       s_target_l2;
+    logic                                       s_target_stream;
+    logic                                       s_l2_req_stream;
+    logic                                       s_stream_valid;
+
     enum logic {RX_IDLE,RX_NON_ALIGNED} r_rx_state,s_rx_state_next;
 
     // binding interfaces to internal signals

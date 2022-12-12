@@ -70,6 +70,10 @@ module udma_stream_unit
      logic                  r_err;
      logic                  s_stream_buf_en;
 
+     logic            [1:0] s_int_datasize;
+     logic                  s_is_jump;
+     logic [L2_AWIDTH_NOAL-1:0] s_wr_ptr_guess;
+
      enum logic [1:0] {ST_IDLE,ST_BUF_TRAN,ST_BUF_WAIT,ST_STREAM} s_state,r_state;
 
      assign s_spoof_match  = (spoof_dest_i == INST_ID);
