@@ -15,25 +15,32 @@
 ///////////////////////////////////////////////////////////////////////////////
 //
 // Authors    : Antonio Pullini (pullinia@iis.ee.ethz.ch)
+//            : Alfio Di Mauro  (adimauro@iis.ee.ethz.ch)
 //
 ///////////////////////////////////////////////////////////////////////////////
 
 
 module udma_core
+  
+  import udma_pkg::L2_DATA_WIDTH;  
+  import udma_pkg::L2_ADDR_WIDTH;  
+  import udma_pkg::CAM_DATA_WIDTH; 
+  import udma_pkg::TRANS_SIZE;     
+  import udma_pkg::L2_AWIDTH_NOAL; 
+  import udma_pkg::STREAM_ID_WIDTH;
+  import udma_pkg::DEST_SIZE;                   
+
   #(
-    parameter L2_DATA_WIDTH     = 64,
-    parameter L2_AWIDTH_NOAL    = 16,
-    parameter DATA_WIDTH        = 32,
+
+    localparam DATA_WIDTH       = L2_DATA_WIDTH,
     parameter APB_ADDR_WIDTH    = 12,  //APB slaves are 4KB by default
     parameter N_RX_LIN_CHANNELS = 8,
     parameter N_RX_EXT_CHANNELS = 8,
     parameter N_TX_LIN_CHANNELS = 8,
     parameter N_TX_EXT_CHANNELS = 8,
     parameter N_PERIPHS         = 8,
-    parameter N_STREAMS         = 4,
-    parameter DEST_SIZE         = 2,
-    parameter STREAM_ID_WIDTH   = 3,
-    parameter TRANS_SIZE        = 16
+    parameter N_STREAMS         = 4
+
     )
    (
     input  logic                        sys_clk_i,
@@ -78,73 +85,17 @@ module udma_core
     input  logic    [L2_DATA_WIDTH-1:0] tx_l2_rdata_i,
     input  logic                        tx_l2_rvalid_i,
 
-    output logic [N_STREAMS-1:0]          [DATA_WIDTH-1 : 0] stream_data_o,
-    output logic [N_STREAMS-1:0]                     [1 : 0] stream_datasize_o,
-    output logic [N_STREAMS-1:0]                             stream_valid_o,
-    output logic [N_STREAMS-1:0]                             stream_sot_o,
-    output logic [N_STREAMS-1:0]                             stream_eot_o,
-    input  logic [N_STREAMS-1:0]                             stream_ready_i,
+    UDMA_EXT_CH.rx_out                  str_ch_tx[N_STREAMS-1:0],
 
-    input  logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_valid_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]      [DATA_WIDTH-1 : 0] rx_lin_data_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]                 [1 : 0] rx_lin_datasize_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]       [DEST_SIZE-1 : 0] rx_lin_destination_i,      
-    output logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_ready_o,
-    output logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_events_o,
-    output logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_en_o,
-    output logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_pending_o,
-    output logic [N_RX_LIN_CHANNELS-1:0]  [L2_AWIDTH_NOAL-1 : 0] rx_lin_curr_addr_o,
-    output logic [N_RX_LIN_CHANNELS-1:0]      [TRANS_SIZE-1 : 0] rx_lin_bytes_left_o,
-    input  logic [N_RX_LIN_CHANNELS-1:0]  [L2_AWIDTH_NOAL-1 : 0] rx_lin_cfg_startaddr_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]      [TRANS_SIZE-1 : 0] rx_lin_cfg_size_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_cfg_continuous_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_cfg_en_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]                 [1 : 0] rx_lin_cfg_stream_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0] [STREAM_ID_WIDTH-1 : 0] rx_lin_cfg_stream_id_i,
-    input  logic [N_RX_LIN_CHANNELS-1:0]                         rx_lin_cfg_clr_i,
+    UDMA_LIN_CH.rx_in                   lin_ch_rx[N_RX_LIN_CHANNELS-1:0],
+    UDMA_LIN_CH.tx_out                  lin_ch_tx[N_TX_LIN_CHANNELS-1:0],
 
-    input  logic [N_RX_EXT_CHANNELS-1:0]  [L2_AWIDTH_NOAL-1 : 0] rx_ext_addr_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]                 [1 : 0] rx_ext_datasize_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]       [DEST_SIZE-1 : 0] rx_ext_destination_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]                 [1 : 0] rx_ext_stream_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0] [STREAM_ID_WIDTH-1 : 0] rx_ext_stream_id_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]                         rx_ext_sot_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]                         rx_ext_eot_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]                         rx_ext_valid_i,
-    input  logic [N_RX_EXT_CHANNELS-1:0]      [DATA_WIDTH-1 : 0] rx_ext_data_i,
-    output logic [N_RX_EXT_CHANNELS-1:0]                         rx_ext_ready_o,
-
-    input  logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_req_i,
-    output logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_gnt_o,
-    output logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_valid_o,
-    output logic [N_TX_LIN_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] tx_lin_data_o,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_ready_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                [1 : 0] tx_lin_datasize_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                [1 : 0] tx_lin_destination_i,
-    output logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_events_o,
-    output logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_en_o,
-    output logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_pending_o,
-    output logic [N_TX_LIN_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] tx_lin_curr_addr_o,
-    output logic [N_TX_LIN_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] tx_lin_bytes_left_o,
-    input  logic [N_TX_LIN_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] tx_lin_cfg_startaddr_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]     [TRANS_SIZE-1 : 0] tx_lin_cfg_size_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_cfg_continuous_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_cfg_en_i,
-    input  logic [N_TX_LIN_CHANNELS-1:0]                        tx_lin_cfg_clr_i,
-    
-    input  logic [N_TX_EXT_CHANNELS-1:0]                        tx_ext_req_i,
-    input  logic [N_TX_EXT_CHANNELS-1:0]                [1 : 0] tx_ext_datasize_i,
-    input  logic [N_TX_EXT_CHANNELS-1:0]                [1 : 0] tx_ext_destination_i,
-    input  logic [N_TX_EXT_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] tx_ext_addr_i,
-    output logic [N_TX_EXT_CHANNELS-1:0]                        tx_ext_gnt_o,
-    output logic [N_TX_EXT_CHANNELS-1:0]                        tx_ext_valid_o,
-    output logic [N_TX_EXT_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] tx_ext_data_o,
-    input  logic [N_TX_EXT_CHANNELS-1:0]                        tx_ext_ready_i
-    
+    UDMA_EXT_CH.rx_in                   ext_ch_rx[N_RX_EXT_CHANNELS-1:0],
+    UDMA_EXT_CH.tx_out                  ext_ch_tx[N_TX_EXT_CHANNELS-1:0]
     );
 
-    localparam N_REAL_TX_EXT_CHANNELS = N_TX_EXT_CHANNELS + N_STREAMS;
-    localparam N_REAL_PERIPHS         = N_PERIPHS + 1;
+  localparam int unsigned               N_REAL_PERIPHS = N_PERIPHS + 1;
+  localparam int unsigned               ADDR_PREFIX_WIDTH = 32-L2_AWIDTH_NOAL;
 
     logic [N_STREAMS-1:0]                             s_tx_ch_req;
     logic [N_STREAMS-1:0]      [L2_AWIDTH_NOAL-1 : 0] s_tx_ch_addr;
@@ -158,16 +109,6 @@ module udma_core
     logic [N_STREAMS-1:0]      [L2_AWIDTH_NOAL-1 : 0] s_cfg_addr;
     logic [N_STREAMS-1:0]          [TRANS_SIZE-1 : 0] s_cfg_buffsize;
     logic [N_STREAMS-1:0]                     [1 : 0] s_cfg_datasize;
-
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_req;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                [1 : 0] s_tx_ext_datasize;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                [1 : 0] s_tx_ext_dest;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0] [L2_AWIDTH_NOAL-1 : 0] s_tx_ext_addr;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_gnt;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_valid;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]     [DATA_WIDTH-1 : 0] s_tx_ext_data;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_ready;
-    logic [N_REAL_TX_EXT_CHANNELS-1:0]                        s_tx_ext_events;
 
     logic                      [31:0] s_periph_data_to;
     logic                       [4:0] s_periph_addr;
@@ -183,6 +124,17 @@ module udma_core
     logic               s_clk_core;
     logic               s_clk_core_en;
 
+    logic [ADDR_PREFIX_WIDTH-1:0]           l2_dest_s; // custom L2 destination
+                                                       // prefix (8 address
+                                                       // MSBs), can be set in
+                                                       // register file (address
+                                                       // 0x10)
+
+    logic [ADDR_PREFIX_WIDTH-1:0]             l2_src_s; // custom L2 src prefix
+                                                        // (8 address MSBs), can
+                                                        // be set in register
+                                                        // file (address 0x14)
+
     assign periph_data_to_o = s_periph_data_to;
     assign periph_addr_o    = s_periph_addr;
     assign periph_rwn_o     = s_periph_rwn;
@@ -193,39 +145,17 @@ module udma_core
     assign s_periph_data_from[N_REAL_PERIPHS-1:1] = periph_data_from_i;
    
 
-    always_comb
-    begin
-      for(int i=0;i<N_TX_EXT_CHANNELS;i++)
-      begin
-        s_tx_ext_req[i]      = tx_ext_req_i[i];
-        s_tx_ext_datasize[i] = tx_ext_datasize_i[i];
-        s_tx_ext_dest[i]     = tx_ext_destination_i[i];
-        s_tx_ext_addr[i]     = tx_ext_addr_i[i];
-        tx_ext_gnt_o[i]      = s_tx_ext_gnt[i];
-        tx_ext_valid_o[i]    = s_tx_ext_valid[i];
-        tx_ext_data_o[i]     = s_tx_ext_data[i];
-        s_tx_ext_ready[i]    = tx_ext_ready_i[i];
-      end
-      for(int i=0;i<N_STREAMS;i++)
-      begin
-        s_tx_ext_req[N_TX_EXT_CHANNELS+i]      = s_tx_ch_req[i];
-        s_tx_ext_datasize[N_TX_EXT_CHANNELS+i] = s_tx_ch_datasize[i];
-        s_tx_ext_dest[N_TX_EXT_CHANNELS+i]     = 2'b00;
-        s_tx_ext_addr[N_TX_EXT_CHANNELS+i]     = s_tx_ch_addr[i];
-        s_tx_ch_gnt[i]                         = s_tx_ext_gnt[N_TX_EXT_CHANNELS+i];
-        s_tx_ch_valid[i]                       = s_tx_ext_valid[N_TX_EXT_CHANNELS+i];
-        s_tx_ch_data[i]                        = s_tx_ext_data[N_TX_EXT_CHANNELS+i];
-        s_tx_ext_ready[N_TX_EXT_CHANNELS+i]    = s_tx_ch_ready[i];
-      end
-    end
+  UDMA_EXT_CH str_ext_ch[N_STREAMS-1:0](.clk_i(s_clk_core));
 
   udma_tx_channels
   #(
       .L2_DATA_WIDTH(L2_DATA_WIDTH),
       .L2_AWIDTH_NOAL(L2_AWIDTH_NOAL),
       .DATA_WIDTH(32),
+      .N_STREAMS(N_STREAMS),
       .N_LIN_CHANNELS(N_TX_LIN_CHANNELS),
-      .N_EXT_CHANNELS(N_REAL_TX_EXT_CHANNELS),
+      .N_EXT_CHANNELS(N_TX_EXT_CHANNELS),
+      .STREAM_ID_WIDTH(STREAM_ID_WIDTH),
       .TRANS_SIZE(TRANS_SIZE)
     ) u_tx_channels (
       .clk_i                ( s_clk_core          ),
@@ -236,33 +166,11 @@ module udma_core
       .l2_addr_o            ( tx_l2_addr_o        ),
       .l2_rdata_i           ( tx_l2_rdata_i       ),
       .l2_rvalid_i          ( tx_l2_rvalid_i      ),
-      
-      .lin_req_i            ( tx_lin_req_i            ),
-      .lin_gnt_o            ( tx_lin_gnt_o            ),
-      .lin_valid_o          ( tx_lin_valid_o          ),
-      .lin_data_o           ( tx_lin_data_o           ),
-      .lin_ready_i          ( tx_lin_ready_i          ),
-      .lin_datasize_i       ( tx_lin_datasize_i       ),
-      .lin_destination_i    ( tx_lin_destination_i    ),
-      .lin_events_o         ( tx_lin_events_o         ),
-      .lin_en_o             ( tx_lin_en_o             ),
-      .lin_pending_o        ( tx_lin_pending_o        ),
-      .lin_curr_addr_o      ( tx_lin_curr_addr_o      ),
-      .lin_bytes_left_o     ( tx_lin_bytes_left_o     ),
-      .lin_cfg_startaddr_i  ( tx_lin_cfg_startaddr_i  ),
-      .lin_cfg_size_i       ( tx_lin_cfg_size_i       ),
-      .lin_cfg_continuous_i ( tx_lin_cfg_continuous_i ),
-      .lin_cfg_en_i         ( tx_lin_cfg_en_i         ),
-      .lin_cfg_clr_i        ( tx_lin_cfg_clr_i        ),
-    
-      .ext_req_i            ( s_tx_ext_req            ),
-      .ext_datasize_i       ( s_tx_ext_datasize       ),
-      .ext_destination_i    ( s_tx_ext_dest           ),
-      .ext_addr_i           ( s_tx_ext_addr           ),
-      .ext_gnt_o            ( s_tx_ext_gnt            ),
-      .ext_valid_o          ( s_tx_ext_valid          ),
-      .ext_data_o           ( s_tx_ext_data           ),
-      .ext_ready_i          ( s_tx_ext_ready          )
+      .str_ext_ch           ( str_ext_ch          ),
+      .lin_ch               ( lin_ch_tx           ), //memory to peripherals (lin channels) 
+      .ext_ch               ( ext_ch_tx           ),  //memory to peripherals
+                                                      //(ext channels)
+      .l2_src_i             ( l2_src_s            )
     );
 
   udma_rx_channels
@@ -278,57 +186,19 @@ module udma_core
     ) u_rx_channels (
       .clk_i               ( s_clk_core              ),
       .rstn_i              ( HRESETn                 ),
-    
+
       .l2_req_o            ( rx_l2_req_o             ),
       .l2_addr_o           ( rx_l2_addr_o            ),
       .l2_be_o             ( rx_l2_be_o              ),
       .l2_wdata_o          ( rx_l2_wdata_o           ),
       .l2_gnt_i            ( rx_l2_gnt_i             ), 
 
-      .stream_data_o       ( stream_data_o           ),
-      .stream_datasize_o   ( stream_datasize_o       ),
-      .stream_valid_o      ( stream_valid_o          ),
-      .stream_sot_o        ( stream_sot_o            ),
-      .stream_eot_o        ( stream_eot_o            ),
-      .stream_ready_i      ( stream_ready_i          ),
+      .str_ch              ( str_ch_tx               ),
+      .str_ext_ch          ( str_ext_ch              ), // goes to tx channel
+      .lin_ch              ( lin_ch_rx               ),
+      .ext_ch              ( ext_ch_rx               ),
 
-      .tx_ch_req_o         ( s_tx_ch_req             ),
-      .tx_ch_addr_o        ( s_tx_ch_addr            ),
-      .tx_ch_datasize_o    ( s_tx_ch_datasize        ),
-      .tx_ch_gnt_i         ( s_tx_ch_gnt             ),
-      .tx_ch_valid_i       ( s_tx_ch_valid           ),
-      .tx_ch_data_i        ( s_tx_ch_data            ),
-      .tx_ch_ready_o       ( s_tx_ch_ready           ),
-
-      .lin_ch_valid_i          ( rx_lin_valid_i          ),
-      .lin_ch_data_i           ( rx_lin_data_i           ),
-      .lin_ch_ready_o          ( rx_lin_ready_o          ),
-      .lin_ch_datasize_i       ( rx_lin_datasize_i       ),
-      .lin_ch_destination_i    ( rx_lin_destination_i    ),
-      .lin_ch_events_o         ( rx_lin_events_o         ),
-      .lin_ch_en_o             ( rx_lin_en_o             ),
-      .lin_ch_pending_o        ( rx_lin_pending_o        ),
-      .lin_ch_curr_addr_o      ( rx_lin_curr_addr_o      ),
-      .lin_ch_bytes_left_o     ( rx_lin_bytes_left_o     ),
-      .lin_ch_cfg_startaddr_i  ( rx_lin_cfg_startaddr_i  ),
-      .lin_ch_cfg_size_i       ( rx_lin_cfg_size_i       ),
-      .lin_ch_cfg_continuous_i ( rx_lin_cfg_continuous_i ),
-      .lin_ch_cfg_en_i         ( rx_lin_cfg_en_i         ),
-      .lin_ch_cfg_stream_i     ( rx_lin_cfg_stream_i     ),
-      .lin_ch_cfg_stream_id_i  ( rx_lin_cfg_stream_id_i  ),
-      .lin_ch_cfg_clr_i        ( rx_lin_cfg_clr_i        ),
-      
-      .ext_ch_addr_i           ( rx_ext_addr_i           ),
-      .ext_ch_datasize_i       ( rx_ext_datasize_i       ),
-      .ext_ch_destination_i    ( rx_ext_destination_i    ),
-      .ext_ch_stream_i         ( rx_ext_stream_i         ),
-      .ext_ch_stream_id_i      ( rx_ext_stream_id_i      ),
-      .ext_ch_sot_i            ( rx_ext_sot_i            ),
-      .ext_ch_eot_i            ( rx_ext_eot_i            ),
-      .ext_ch_valid_i          ( rx_ext_valid_i          ),
-      .ext_ch_data_i           ( rx_ext_data_i           ),
-      .ext_ch_ready_o          ( rx_ext_ready_o          )
-
+      .l2_dest_i           ( l2_dest_s               )
     );
 
     udma_apb_if #(
@@ -376,7 +246,9 @@ module udma_core
         .event_data_i (event_data_i),
         .event_ready_o(event_ready_o),
 
-        .event_o(event_o)
+        .event_o(event_o),
+        .l2_dest_o(l2_dest_s),
+        .l2_src_o(l2_src_s)
     );
 
     pulp_clock_gating i_clk_gate_sys_udma

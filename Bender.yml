@@ -13,11 +13,14 @@ dependencies:
 sources:
   - include_dirs: 
       - rtl
+      - rtl/common
     files:
       # Source files grouped in levels. Files in level 0 have no dependencies on files in this
       # package. Files in level 1 only depend on files in level 0, files in level 2 on files in
       # levels 1 and 0, etc. Files within a level are ordered alphabetically.
       # Level 0
+      - rtl/common/udma_pkg.sv
+      - rtl/common/udma_interfaces.sv
       - rtl/common/io_clk_gen.sv
       - rtl/common/io_event_counter.sv
       - rtl/common/io_generic_fifo.sv

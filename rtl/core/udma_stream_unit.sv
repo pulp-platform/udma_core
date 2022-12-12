@@ -86,6 +86,9 @@ module udma_stream_unit
      assign out_stream_sot_o      = s_stream_sel ? 1'b0 : in_stream_sot_i; 
      assign out_stream_eot_o      = s_stream_sel ? 1'b0 : in_stream_eot_i; 
 
+     assign r_datasize            = '0; // FIXME ALFIO, I think this way stream data size would always be 32bits
+     assign in_stream_ready_o     = s_stream_sel ? out_stream_ready_i: 0; //FIXME ALFIO, speculating on where to connect this, it was not attached at all
+
      assign s_wr_ptr_guess = r_wr_ptr + s_datasize_toadd;
      assign s_is_jump      = (spoof_addr_i != s_wr_ptr_guess);
 
